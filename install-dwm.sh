@@ -355,8 +355,7 @@ EOF
 # 9. Habilitar LightDM
 # ----------------------------------------------------------------
 info "Habilitando servicio lightdm..."
-# Si estás en Void, esto es lo necesario:
-sudo ln -sf /etc/sv/lightdm /var/service/
+# terminando la configuracion
 
 info "¡Instalación lista!"
 warn "Si no ves la sesión de DWM en el login, asegúrate de que /usr/local/bin/ esté en tu PATH"
