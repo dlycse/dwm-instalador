@@ -21,7 +21,7 @@ static const char col_gray3[]       = "#cdd6f4";
 static const char col_gray4[]       = "#ffffff";
 static const char col_cyan[]        = "#89b4fa";
 static const char *colors[][3]      = {
-        /*               fg         bg         border   */
+        /*                 fg         bg         border   */
         [SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
         [SchemeSel]  = { col_gray4, col_gray1, col_cyan  },
 };
@@ -30,8 +30,8 @@ static const char *colors[][3]      = {
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 
 static const Rule rules[] = {
-        /* class      instance    title       tags mask     isfloating   monitor */
-        { "Gimp",     NULL,       NULL,       0,            1,           -1 },
+        /* class     instance    title        tags mask     isfloating   monitor */
+        { "Gimp",     NULL,       NULL,       0,             1,           -1 },
         { "firefox",  NULL,       NULL,       1 << 0,       0,           -1 },
 };
 
@@ -60,6 +60,19 @@ static const Layout layouts[] = {
         { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+
+/* Función integrada para navegación secuencial de tags (CORREGIDA CON STATIC) */
+static void
+shiftview(const Arg *arg) {
+        Arg shifted;
+        if (arg->i > 0) // Siguiente tag
+                shifted.ui = (selmon->tagset[selmon->seltags] << arg->i)
+                   | (selmon->tagset[selmon->seltags] >> (9 - arg->i));
+        else // Tag anterior
+                shifted.ui = (selmon->tagset[selmon->seltags] >> (-arg->i))
+                   | (selmon->tagset[selmon->seltags] << (9 + arg->i));
+        view(&shifted);
+}
 
 /* commands */
 static char dmenumon[2] = "0";
@@ -93,8 +106,9 @@ static const Key keys[] = {
         { MODKEY|ShiftMask,             XK_comma,      tagmon,         {.i = -1 } },
         { MODKEY|ShiftMask,             XK_period,     tagmon,         {.i = +1 } },
 
-        { MODKEY,                       XK_Page_Down,  view,           {0} },
-        { MODKEY,                       XK_Page_Up,    view,           {0} },
+        /* Navegación secuencial con las teclas de página */
+        { MODKEY,                       XK_Page_Up,    shiftview,      {.i = -1} },
+        { MODKEY,                       XK_Page_Down,  shiftview,      {.i = +1} },
 
         { 0, XF86XK_AudioRaiseVolume,   spawn, SHCMD("amixer set Master 3%+") },
         { 0, XF86XK_AudioLowerVolume,   spawn, SHCMD("amixer set Master 3%-") },
@@ -119,7 +133,7 @@ static const Key keys[] = {
         TAGKEYS(                        XK_9,                      8)
 };
 
-/* button definitions */
+/* button definitions (CORREGIDOS LOS MODKEY) */
 static const Button buttons[] = {
         { ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
         { ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
