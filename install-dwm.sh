@@ -40,6 +40,28 @@ if [ "$DISTRO_ID" != "void" ]; then
 fi
 
 # ----------------------------------------------------------------
+# Auto-detección de hardware
+# ----------------------------------------------------------------
+info "Detectando hardware..."
+
+# Detectar interfaz de red por defecto
+WIFI_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+if [ -z "$WIFI_IFACE" ]; then
+    warn "No se pudo detectar interfaz de red activa, usando 'eth0' por defecto."
+    WIFI_IFACE="eth0"
+fi
+
+# Detectar nombre de la batería
+BAT_NAME=$(ls /sys/class/power_supply/ | grep -E '^BAT' | head -n1)
+if [ -z "$BAT_NAME" ]; then
+    warn "No se detectó batería, configurando en n/a."
+    BAT_NAME="n/a"
+fi
+
+info "Interfaz de red: $WIFI_IFACE"
+info "Batería: $BAT_NAME"
+
+# ----------------------------------------------------------------
 # 1. Variables de configuracion (edita a tu gusto)
 # ----------------------------------------------------------------
 DWM_REPO="https://git.suckless.org/dwm"
