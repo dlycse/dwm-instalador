@@ -1,3 +1,5 @@
+SOLO PARA VOID LINUX, MAS ADELANTE DISPONIBLE PARA LAS DIFERENTES DISTRIBUCIONES
+
 1. Clonar el repositorio
 Copia y pega este comando en tu terminal para descargar todo el código a tu máquina:
 
