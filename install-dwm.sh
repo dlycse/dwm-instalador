@@ -299,39 +299,42 @@ elif [ ! -f "$WALLPAPER_PATH" ]; then
     warn "No hay WALLPAPER_URL configurada para '$DISTRO_ID' y no existe $WALLPAPER_PATH."
     warn "Copia tu imagen manualmente a: $WALLPAPER_PATH"
 fi
+# ----------------------------------------------------------------
+# 7. Crear script Wrapper (Para que LightDM inicie todo)
+# ----------------------------------------------------------------
+info "Creando script wrapper para la sesion..."
+sudo tee /usr/local/bin/dwm-session >/dev/null <<EOF
+#!/bin/sh
+# Comandos de inicio
+feh --bg-fill "$WALLPAPER_PATH" &
+picom &
+slstatus &
+
+# Ejecutar dwm (siempre al final con exec)
+exec dwm
+EOF
+
+sudo chmod +x /usr/local/bin/dwm-session
 
 # ----------------------------------------------------------------
-# 7. sesion de dwm para lightdm
+# 8. Registrar sesion dwm en lightdm
 # ----------------------------------------------------------------
 info "Registrando sesion dwm en lightdm..."
 sudo mkdir -p /usr/share/xsessions
-sudo tee /usr/share/xsessions/dwm.desktop >/dev/null <<'EOF'
+sudo tee /usr/share/xsessions/dwm.desktop >/dev/null <<EOF
 [Desktop Entry]
 Name=dwm
 Comment=Dynamic window manager
-Exec=dwm
+Exec=/usr/local/bin/dwm-session
 Type=Application
 EOF
 
 # ----------------------------------------------------------------
-# 8. .xinitrc / .xprofile
+# 9. Habilitar LightDM
 # ----------------------------------------------------------------
-info "Escribiendo .xinitrc y .xprofile..."
-cat > "$HOME/.xinitrc" <<EOF
-feh --bg-fill $WALLPAPER_PATH &
-picom &
-slstatus &
-exec dwm
-EOF
+info "Habilitando servicio lightdm..."
+# Si estás en Void, esto es lo necesario:
+sudo ln -sf /etc/sv/lightdm /var/service/
 
-cat > "$HOME/.xprofile" <<EOF
-feh --bg-fill $WALLPAPER_PATH &
-picom &
-slstatus &
-EOF
-
-info "Instalacion completa."
-warn "Recuerda:"
-echo "  - Ajusta WIFI_IFACE / BAT_NAME en este script si tu hardware es distinto (ip link, ls /sys/class/power_supply/)."
-echo "  - Pon una imagen en $WALLPAPER_PATH si no se descargo ninguna, o define WALLPAPER_URL arriba."
-echo "  - Reinicia (sudo reboot) para entrar por lightdm, o corre 'startx' si prefieres arranque manual."
+info "¡Instalación lista!"
+warn "Si no ves la sesión de DWM en el login, asegúrate de que /usr/local/bin/ esté en tu PATH"
