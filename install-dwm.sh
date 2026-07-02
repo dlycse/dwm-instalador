@@ -91,7 +91,7 @@ sudo xbps-install -Sy \
     dmenu st slock dunst picom feh \
     alsa-utils brightnessctl scrot \
     nerd-fonts-ttf \
-    lightdm lightdm-gtk-greeter dbus
+    dbus
 
 info "Habilitando servicios (dbus, lightdm)..."
 [ -L /var/service/dbus ]    || sudo ln -s /etc/sv/dbus /var/service/
@@ -351,10 +351,6 @@ Exec=/usr/local/bin/dwm-session
 Type=Application
 EOF
 
-# ----------------------------------------------------------------
-# 9. Habilitar LightDM
-# ----------------------------------------------------------------
-info "Habilitando servicio lightdm..."
 # terminando la configuracion
 
 info "¡Instalación lista!"
