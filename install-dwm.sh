@@ -156,8 +156,15 @@ WALLPAPER_URL="https://wallpapercave.com/download/empty-error-wallpapers-wp83307
 
 # Gestor de archivos para ver HDD/pendrives: "pcmanfm" (ligero) o "thunar"
 FILE_MANAGER="pcmanfm"
-# Montaje automatico al conectar: 1 = udiskie (recomendado), 0 = solo clic en el FM
-AUTO_MOUNT=1
+# udiskie = auto-montador: monta el pendrive SOLO al conectarlo, sin hacer clic.
+# NO hace falta para que pcmanfm/Thunar muestren y monten los dispositivos: eso ya
+# lo cubren dbus-run-session + udisks2 + la regla polkit + el gestor de archivos.
+# Ponlo en 1 solo si quieres montaje automatico instantaneo.
+#   0 = el FM muestra el dispositivo y lo montas con un clic  (por defecto)
+#   1 = ademas instala/arranca udiskie para auto-montar al conectar
+# Nota: con Thunar tambien puedes auto-montar SIN udiskie anadiendo 'thunar --daemon &'
+#       a ~/.config/dwm/autostart.sh (thunar-volman se encarga).
+AUTO_MOUNT=0
 
 # ----------------------------------------------------------------
 # 2. Paquetes necesarios
