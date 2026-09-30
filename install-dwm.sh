@@ -671,6 +671,7 @@ if ! pgrep -f 'polkit.*authentication.*agent' >/dev/null 2>&1; then
 fi
 
 EOF
+mkdir -p "$HOME/.config/dwm/autostart.sh"
     } > "$HOME/.config/dwm/autostart.sh"
     chmod +x "$HOME/.config/dwm/autostart.sh"
 else
@@ -1022,15 +1023,6 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
 
   Idea de uso: terminal en el tag 1, navegador en el 2, musica en el 3, chat
   en el 4.
-
-------------------------------------------------------------------------------
- MONITORES
-------------------------------------------------------------------------------
-
-  Super+,...................... enfocar el monitor anterior (izquierda)
-  Super+....................... enfocar el monitor siguiente (derecha)
-  Super+Shift+,................ enviar la ventana al monitor anterior
-  Super+Shift+................. enviar la ventana al monitor siguiente
 
 ------------------------------------------------------------------------------
  GAPS - AQUI SI ESTAN ACTIVOS
