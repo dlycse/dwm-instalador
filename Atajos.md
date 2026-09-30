@@ -1,112 +1,256 @@
-PROGRAMAS
+# ⌨️ Atajos de teclado — dwm + slstatus
 
-Super+d: lanzador dmenu
+Lista **completa y real** de los atajos que deja configurados el instalador.
 
-Super+Enter: terminal st
+> **¿Qué es "Super"?** Es la tecla con el logo de **Windows** ⊞ (en teclados de Mac es **⌘ Command**).
 
-Super+t: terminal st
+> 📄 **¿Estás leyendo esto desde la terminal?** El instalador genera una versión en
+> **texto plano** pensada para `nano`, alineada y sin markdown:
+>
+> ```bash
+> nano ~/Atajos.txt
+> ```
+>
+> Este archivo (`Atajos.md`) es el mismo contenido, pero con formato para leerlo en GitHub.
 
-Super+b: Firefox
+---
 
-Super+r: lf
+## 🆘 Si acabas de instalar, con esto ya puedes usar el sistema
 
-VENTANAS
+| Quieres… | Presiona |
+|---|---|
+| Abrir una **terminal** | `Super` + `Enter` |
+| Abrir un **programa** (lanzador) | `Super` + `D` |
+| **Cerrar** la ventana que estás usando | `Super` + `Q` |
+| Ver tus **archivos** (terminal) | `Super` + `E` |
+| Ver tus **archivos** (ventana gráfica) | `Super` + `G` |
+| Abrir el **navegador** | `Super` + `B` |
+| **Cerrar la sesión** (volver al login) | `Super` + `Shift` + `E` |
 
-Super+q: cerrar ventana
+Con esos siete ya puedes manejarte. El resto lo vas aprendiendo sobre la marcha.
 
-Super+j o Super+Abajo: enfocar la siguiente
+---
 
-Super+k o Super+Arriba: enfocar la anterior
+## 📖 Mini glosario
 
-Super+h: achicar el area maestra
+Un gestor de ventanas **mosaico** (*tiling*) no apila ventanas como Windows: las **reparte** automáticamente por la pantalla.
 
-Super+l: agrandar el area maestra
+| Palabra | Qué significa |
+|---|---|
+| **Tag** | Un "escritorio virtual". Hay 9 y cada uno guarda sus propias ventanas. |
+| **Área maestra** | La ventana grande y principal, normalmente a la izquierda. |
+| **Layout** | La forma de repartir las ventanas. |
+| **Monocle** | Layout donde **una sola ventana** ocupa toda la pantalla. |
+| **Flotante** | Ventana fuera del mosaico: la mueves y redimensionas a mano. |
+| **Barra** | La línea de arriba (la dibuja dwm, el contenido lo genera **slstatus**). |
+| **Gaps** | Separación entre ventanas. **Aquí sí están activos** (parche *vanitygaps*). |
 
-Super+i: una ventana mas en el area maestra
+---
 
-Super+Shift+t: alternar ventana flotante
+## 🚀 Programas
 
-Super+w: mostrar u ocultar la barra
+| Atajo | Qué abre |
+|---|---|
+| `Super` + `D` | **Lanzador de aplicaciones** (dmenu) |
+| `Super` + `Enter` | **Terminal** (st) |
+| `Super` + `T` | **Terminal** (st) — atajo alternativo |
+| `Super` + `B` | **Firefox** |
+| `Super` + `E` | **lf**, gestor de archivos en terminal (se abre dentro de st) |
+| `Super` + `G` | **pcmanfm**, gestor de archivos gráfico |
 
-LAYOUTS
+> ⚠️ **Ojo con estas dos:** `Super` + `E` abre **lf** (terminal) y `Super` + `G` abre **pcmanfm**
+> (ventana gráfica, que es el que muestra los pendrives y discos montados).
+> `Super` + `R` **no** abre lf — es el de alternar layout.
 
-Super+f: monocle (pantalla completa)
+---
 
-Super+r: alternar con el layout anterior
+## 🪟 Ventanas
 
-Super+espacio: alternar con el layout anterior
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `Q` | **Cerrar** la ventana enfocada |
+| `Super` + `J` &nbsp;o&nbsp; `Super` + `↓` | Enfocar la **siguiente** ventana |
+| `Super` + `K` &nbsp;o&nbsp; `Super` + `↑` | Enfocar la ventana **anterior** |
+| `Super` + `H` | Hacer el área maestra **más angosta** |
+| `Super` + `L` | Hacer el área maestra **más ancha** |
+| `Super` + `I` | Meter **una ventana más** en el área maestra |
+| `Super` + `Shift` + `T` | Volver la ventana **flotante** (o devolverla al mosaico) |
 
-TAGS
+---
 
-Super+1 a 9: ir a ese tag
+## 📊 Barra (slstatus)
 
-Super+Shift+1 a 9: mover la ventana a ese tag
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `W` | Ocultar o mostrar la barra |
 
-Super+Ctrl+1 a 9: ver ese tag junto con el actual
+La barra la dibuja **dwm** y su texto lo genera **slstatus**: CPU, RAM, la red wifi,
+la batería (si el equipo tiene) y la fecha.
 
-Super+Ctrl+Shift+1 a 9: añadir o quitar la ventana de ese tag
+Para cambiar lo que muestra: edita `~/slstatus/config.h` y ejecuta `dwm-rebuild`.
 
-Super+Tab: volver al tag anterior
+---
 
-MONITORES
+## 📐 Layouts
 
-Super+coma: enfocar monitor anterior
+| Símbolo en la barra | Layout |
+|---|---|
+| `[]=` | **Mosaico**: área maestra + columna de ventanas (el inicial) |
+| `"><>"` | **Flotante**: cada ventana se mueve y redimensiona a mano |
+| `[M]` | **Monocle**: una sola ventana ocupando todo |
 
-Super+punto: enfocar monitor siguiente
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `R` | **Alternar** con el layout anterior |
+| `Super` + `Space` | **Alternar** con el layout anterior (hace lo mismo que `Super` + `R`) |
+| `Super` + `F` | Ir directo a **monocle** |
 
-Super+Shift+coma: enviar ventana al monitor anterior
+> 📌 El layout **flotante** (`"><>"`) no tiene tecla propia: se llega alternando con `Super` + `R`.
 
-Super+Shift+punto: enviar ventana al monitor siguiente
+---
 
-GAPS
+## 🔢 Tags (los 9 escritorios)
 
-Super+Ctrl+u: aumentar gaps
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `1` … `9` | **Ir** a ese tag |
+| `Super` + `Shift` + `1` … `9` | **Mover** la ventana actual a ese tag |
+| `Super` + `Ctrl` + `1` … `9` | **Ver dos tags a la vez** (el actual + ese) |
+| `Super` + `Ctrl` + `Shift` + `1`…`9` | La ventana **aparece en ambos** tags sin moverla |
+| `Super` + `Tab` | Volver al **tag anterior** |
 
-Super+Ctrl+Shift+u: disminuir gaps
+**Idea de uso:** terminal en el tag 1, navegador en el 2, música en el 3, chat en el 4.
 
-Super+Ctrl+0: activar o desactivar gaps
+---
 
-Super+Ctrl+Shift+0: restablecer gaps
+## 🖥️ Varios monitores
 
-TECLAS ESPECIALES
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `,` | Enfocar el monitor **anterior** (izquierda) |
+| `Super` + `.` | Enfocar el monitor **siguiente** (derecha) |
+| `Super` + `Shift` + `,` | **Enviar la ventana** al monitor anterior |
+| `Super` + `Shift` + `.` | **Enviar la ventana** al monitor siguiente |
 
-Subir volumen: sube 3%
+---
 
-Bajar volumen: baja 3%
+## 📏 Gaps — ✅ aquí SÍ están activos
 
-Mute: silenciar
+El instalador aplica el parche **vanitygaps** a dwm 6.2, así que la separación entre
+ventanas funciona desde el primer momento (a diferencia de dwl, que no trae gaps).
 
-Brillo arriba: sube 5%
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `Ctrl` + `U` | **Aumentar** la separación entre ventanas |
+| `Super` + `Ctrl` + `Shift` + `U` | **Disminuir** la separación |
+| `Super` + `Ctrl` + `0` | **Activar / desactivar** gaps |
+| `Super` + `Ctrl` + `Shift` + `0` | **Restablecer** los gaps a su valor inicial |
 
-Brillo abajo: baja 5%
+> Los valores iniciales (10 px) se cambian en `~/dwm/config.h`: `gappih`, `gappiv`, `gappoh` y `gappov`.
 
-Print: captura de pantalla en ~/Pictures
+---
 
-SESION
-Super+Shift+e: salir de dwm
+## 🔊 Teclas especiales (sin Super)
 
-MOUSE SOBRE LAS VENTANAS
+| Tecla | Qué hace |
+|---|---|
+| Subir volumen | +3 % (`amixer` / ALSA) |
+| Bajar volumen | −3 % |
+| Mute | Silenciar o restaurar |
+| Brillo arriba | +5 % (`brightnessctl`) |
+| Brillo abajo | −5 % |
+| `Print` / `Impr Pant` | **Captura de pantalla** (`scrot`) → se guarda en `~/Pictures` |
 
-Super+clic izquierdo: mover ventana
+---
 
-Super+clic central: alternar flotante
+## 🚪 Salir
 
-Super+clic derecho: redimensionar
+| Atajo | Qué hace |
+|---|---|
+| `Super` + `Shift` + `E` | **Cerrar la sesión de dwm** (vuelves a lightdm) |
 
-MOUSE SOBRE LA BARRA
+> 🔧 **Si dwm se congela:** `Ctrl` + `Alt` + `F1` para ir a una consola y ahí `sudo reboot`.
 
-Clic izquierdo en el simbolo del layout: alternar layout anterior
+---
 
-Clic derecho en el simbolo del layout: monocle
+## 🖱️ Ratón sobre las ventanas
 
-Clic central en el titulo de la ventana: pasar la ventana al area maestra
+| Acción | Efecto |
+|---|---|
+| `Super` + **clic izquierdo** y arrastrar | **Mover** la ventana |
+| `Super` + **clic central** | Alternar ventana **flotante** |
+| `Super` + **clic derecho** y arrastrar | **Redimensionar** la ventana |
 
-Clic central en el estado: abrir terminal
+---
 
-Clic izquierdo en un numero de tag: ir a ese tag
+## 🖱️ Ratón sobre la barra
 
-Clic derecho en un numero de tag: ver ese tag junto con el actual
+En dwm los clics de la barra **sí funcionan** (viven en el array `buttons[]` de `config.h`).
 
-Super+clic izquierdo en un numero de tag: mover la ventana a ese tag
+| Dónde | Clic izquierdo | Clic derecho | Clic central |
+|---|---|---|---|
+| **Símbolo del layout** | Alternar al layout anterior | Ir a monocle | — |
+| **Título de la ventana** | — | — | Pasarla al área maestra (*zoom*) |
+| **Zona de estado** (derecha) | — | — | Abrir una terminal (st) |
+| **Número de tag** | Ir a ese tag | Ver ese tag junto al actual | — |
+| **Número de tag** + `Super` | Mover la ventana a ese tag | Añadir/quitar la ventana de ese tag | — |
 
-Super+clic derecho en un numero de tag: añadir o quitar la ventana de ese tag
+---
+
+## 💾 Pendrives y discos duros
+
+El instalador deja configurados **udisks2 + polkit + elogind** para que puedas montar
+discos **sin contraseña** (si tu usuario está en el grupo `wheel`).
+
+| Qué quieres | Cómo |
+|---|---|
+| Ver los dispositivos | `Super` + `G` → en el panel izquierdo de pcmanfm |
+| Montar uno | **Clic** sobre el dispositivo (no pide contraseña) |
+| Ver dónde se montó | `/run/media/TU-USUARIO/` |
+
+Desde la terminal:
+
+```bash
+lsblk -f                          # ver discos y particiones
+udisksctl mount -b /dev/sdb1      # montar sin contraseña
+udisksctl unmount -b /dev/sdb1    # desmontar
+```
+
+> La regla que lo permite está en `/etc/polkit-1/rules.d/49-udisks2-wheel.rules`.
+> Hace falta **reiniciar la sesión** después de instalar para que el grupo `wheel` surta efecto.
+
+---
+
+## 🎨 Cambiar estos atajos
+
+```bash
+nano ~/dwm/config.h     # 1. busca la tecla y cámbiala
+sudo make clean install # 2. recompila e instala
+# 3. Super + Shift + E para salir, y vuelve a entrar
+```
+
+> `dwm-rebuild` recompila **dwm y slstatus**, y reinicia slstatus sin cerrar la sesión.
+
+| Archivo | Qué se cambia ahí |
+|---|---|
+| `~/dwm/config.h` | **Atajos**, colores, fuentes, gaps, reglas de ventanas |
+| `~/slstatus/config.h` | Qué muestra la barra (CPU, RAM, wifi, batería, fecha) |
+| `~/.config/dwm/autostart.sh` | Programas que arrancan con dwm |
+| `~/.config/picom/picom.conf` | Transparencias y compositor |
+| `~/.config/lf/lfrc` | Comportamiento del gestor de archivos `lf` |
+| `/usr/local/bin/dwm-session` | Wrapper de sesión (`dbus-run-session dwm`) |
+| `/etc/polkit-1/rules.d/49-udisks2-wheel.rules` | Permisos de montaje de discos |
+
+---
+
+## 🔗 Referencias
+
+| Proyecto | Enlace |
+|---|---|
+| **dwm** | https://dwm.suckless.org |
+| **slstatus** (contenido de la barra) | https://tools.suckless.org/slstatus |
+| **vanitygaps** (parche de gaps) | https://dwm.suckless.org/patches/vanitygaps |
+| **lf** (gestor de archivos) | https://github.com/gokcehan/lf |
+| **pcmanfm** | https://github.com/lxqt/pcmanfm |
+
+Manuales en tu terminal: `man 1 dwm` · `man 1 st` · `man 1 dmenu` · `man 1 lf`
