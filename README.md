@@ -208,8 +208,8 @@ Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulare
 
 | Archivo | Qué cambia | Cómo se aplica |
 |---|---|---|
-| `~/dwm/config.h` | **Atajos**, colores, fuentes, gaps, reglas de ventanas | `dwm-rebuild` |
-| `~/slstatus/config.h` | Qué muestra la barra (CPU, RAM, wifi, batería, fecha) | `dwm-rebuild` |
+| `~/dwm/config.h` | **Atajos**, colores, fuentes, gaps, reglas de ventanas | `sudo make clean install` |
+| `~/slstatus/config.h` | Qué muestra la barra (CPU, RAM, wifi, batería, fecha) | `sudo make clean install` |
 | `~/.config/dwm/autostart.sh` | Programas que arrancan con dwm | Al reiniciar la sesión |
 | `~/.config/picom/picom.conf` | Transparencias y compositor | Al reiniciar la sesión |
 | `~/.config/lf/lfrc` | Gestor de archivos `lf` | Al reabrir `lf` |
