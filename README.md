@@ -17,8 +17,7 @@ Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya prec
 | **slstatus** | El contenido de la barra: CPU, RAM, wifi, batería y fecha |
 | **st** | Emulador de terminal |
 | **dmenu** | Lanzador de aplicaciones |
-| **pcmanfm** | Gestor de archivos gráfico (muestra pendrives y discos) |
-| **lf** | Gestor de archivos en la terminal |
+| **lf** | Gestor de archivos en la terminal — **el único**, no se instala ninguno gráfico |
 | **picom** | Compositor (transparencias) |
 | **feh** | Fondo de pantalla |
 | **dunst** | Notificaciones |
@@ -26,6 +25,14 @@ Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya prec
 | **lightdm** | Pantalla de inicio de sesión (también funciona con `startx`) |
 | **udisks2 + polkit + elogind** | Montar pendrives y discos **sin contraseña** |
 | Firefox, mpv, zathura, btop | Navegador, video, PDF, monitor del sistema |
+
+> 📁 **Solo `lf` como gestor de archivos.** Este instalador **no** instala ninguno gráfico
+> (ni pcmanfm ni Thunar): si quieres uno, lo instalas tú y le pones el atajo que prefieras.
+> ```bash
+> sudo xbps-install -S pcmanfm      # o Thunar, o el que quieras
+> ```
+> La pila de montaje (`udisks2` + `polkit` + `elogind`) **sí** queda configurada, así que
+> montar discos sin contraseña funciona igual con cualquier gestor que añadas después.
 
 Apariencia: paleta **Catppuccin Mocha** y fuente **JetBrainsMono Nerd Font**.
 
@@ -126,7 +133,6 @@ Los más usados:
 | `Super` + `D` | Lanzador (**dmenu**) |
 | `Super` + `Enter` / `Super` + `T` | Terminal (**st**) |
 | `Super` + `E` | Gestor de archivos en terminal (**lf**) |
-| `Super` + `G` | Gestor de archivos gráfico (**pcmanfm**) |
 | `Super` + `B` | Firefox |
 | `Super` + `Q` | Cerrar ventana |
 | `Super` + `J` / `K` | Siguiente / anterior ventana |
@@ -179,19 +185,16 @@ Este instalador deja configurada la pila completa para que montar discos no sea 
 `udevd` detecta el dispositivo → `udisks2` lo monta → `polkit` decide si hace falta contraseña →
 tu regla dice que el grupo `wheel` **no la necesita**.
 
-| Qué quieres | Cómo |
+No hay gestor de archivos gráfico: esto se hace desde la terminal, o desde `lf`
+(`Super` + `E`, que corre dentro de `st`).
+
+| Qué quieres | Comando |
 |---|---|
-| Ver los dispositivos conectados | `Super` + `G` → panel izquierdo de pcmanfm |
-| Montar uno | **Clic** sobre el dispositivo |
+| Ver los discos y particiones | `lsblk -f` |
+| Ver qué dispositivos reconoce udisks2 | `udisksctl list` |
+| **Montar** uno, sin contraseña | `udisksctl mount -b /dev/sdb1` |
+| **Desmontarlo** | `udisksctl unmount -b /dev/sdb1` |
 | Saber dónde se montó | `/run/media/TU-USUARIO/` |
-
-Desde la terminal:
-
-```bash
-lsblk -f                          # ver discos y particiones
-udisksctl mount -b /dev/sdb1      # montar sin contraseña
-udisksctl unmount -b /dev/sdb1    # desmontar
-```
 
 Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulares Android).
 
@@ -208,8 +211,8 @@ Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulare
 
 | Archivo | Qué cambia | Cómo se aplica |
 |---|---|---|
-| `~/dwm/config.h` | **Atajos**, colores, fuentes, gaps, reglas de ventanas | `sudo make clean install` |
-| `~/slstatus/config.h` | Qué muestra la barra (CPU, RAM, wifi, batería, fecha) | `sudo make clean install` |
+| `~/dwm/config.h` | **Atajos**, colores, fuentes, gaps, reglas de ventanas | `cd ~/dwm && sudo make clean install` |
+| `~/slstatus/config.h` | Qué muestra la barra (CPU, RAM, wifi, batería, fecha) | `cd ~/slstatus && sudo make clean install` |
 | `~/.config/dwm/autostart.sh` | Programas que arrancan con dwm | Al reiniciar la sesión |
 | `~/.config/picom/picom.conf` | Transparencias y compositor | Al reiniciar la sesión |
 | `~/.config/lf/lfrc` | Gestor de archivos `lf` | Al reabrir `lf` |
@@ -219,12 +222,18 @@ Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulare
 ### Ejemplo: cambiar un atajo de teclado
 
 ```bash
-nano ~/dwm/config.h     # 1. edita la tecla
-sudo make clean install # 2. recompila dwm y slstatus
+nano ~/dwm/config.h              # 1. edita la tecla
+cd ~/dwm && sudo make clean install   # 2. recompila e instala
 # 3. Super+Shift+E para salir y vuelve a entrar
 ```
 
-> `sudo make clean install` reinicia **slstatus** sin cerrar la sesión, así que los cambios de barra se ven al instante.
+> ⚠️ `sudo make clean install` recompila **solo el proyecto en cuya carpeta estés**.
+> Si también cambiaste `~/slstatus/config.h`, repítelo ahí y reinicia la barra a mano
+> para ver el cambio sin cerrar la sesión:
+> ```bash
+> cd ~/slstatus && sudo make clean install
+> pkill -x slstatus; sleep 1; slstatus &
+> ```
 
 ### Cambiar el fondo de pantalla
 
@@ -250,7 +259,7 @@ cp /ruta/de/mi-fondo.png ~/Pictures/wallpaper.jpg
 | dwm arranca pero no se ve nada | `Ctrl` + `Alt` + `F1` y revisa `~/.xsession-errors` |
 | lightdm no reinicia con el botón *restart* | `Ctrl` + `Alt` + `F1` y ahí `sudo reboot` |
 | El pendrive pide contraseña al montarlo | Reinicia la sesión (el grupo `wheel` solo aplica al volver a entrar) y comprueba `loginctl` |
-| No aparecen los pendrives en pcmanfm | `sv status udevd dbus elogind polkitd` — los cuatro deben estar `run:` |
+| `lsblk` no ve el pendrive | `sv status udevd dbus elogind polkitd` — los cuatro deben estar `run:` |
 | La compilación de dwm falla | El instalador fija dwm en el **tag 6.2** por el parche vanitygaps; mira `~/dwm/dwm.c.rej` |
 | El instalador dice que falta `git` | `sudo xbps-install -S git` y vuelve a ejecutarlo |
 
@@ -268,7 +277,6 @@ Este instalador no reinventa nada: une y configura proyectos existentes.
 | **st** — terminal | https://st.suckless.org |
 | **dmenu** — lanzador | https://tools.suckless.org/dmenu |
 | **lf** — gestor de archivos en terminal | https://github.com/gokcehan/lf |
-| **pcmanfm** — gestor de archivos gráfico | https://github.com/lxqt/pcmanfm |
 | **picom** — compositor | https://github.com/yshui/picom |
 
 ---
@@ -284,6 +292,7 @@ Tengo dos instaladores hermanos:
 | Barra | slstatus (integrada en dwm) | dwlb (externa) |
 | Terminal | st | foot |
 | Lanzador | dmenu | wmenu |
+| Gestor de archivos | `lf` (solo terminal) | `lf` (solo terminal) |
 | Login | lightdm | greetd + tuigreet |
 | Gaps | ✅ activos (parche) | ❌ dwl no los trae |
 | Gaming / GPU | No incluido | Steam + drivers (AMD, Intel, NVIDIA híbridas) |
