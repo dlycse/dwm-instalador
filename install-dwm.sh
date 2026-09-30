@@ -671,7 +671,7 @@ if ! pgrep -f 'polkit.*authentication.*agent' >/dev/null 2>&1; then
 fi
 
 EOF
-mkdir -p "$HOME/.config/dwm/autostart.sh"
+
     } > "$HOME/.config/dwm/autostart.sh"
     chmod +x "$HOME/.config/dwm/autostart.sh"
 else
