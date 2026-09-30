@@ -1,7 +1,7 @@
 #!/bin/sh
 # install-dwm.sh  (v0.7) 
 # Instalador de dwm + rice personalizado (Void Linux)
-#      + polkit/udisks2/elogind para ver HDD y pendrives en pcmanfm/Thunar
+#      + polkit/udisks2/elogind para montar HDD y pendrives sin contrasena
 #      + exec dbus-run-session dwm (bus de sesion garantizado) 
 # Uso: sh install-dwm.sh        (como usuario normal, NO como root)
 # Solo revisar sintaxis: sh -n install-dwm.sh
@@ -154,17 +154,12 @@ WALLPAPER_PATH="$WALLPAPER_DIR/wallpaper.jpg"
 # 1280x800; se guarda con extension .jpg pero feh lo lee igual.
 WALLPAPER_URL="https://wallpapercave.com/download/empty-error-wallpapers-wp8330753"
 
-# Gestor de archivos para ver HDD/pendrives: "pcmanfm" (ligero) o "thunar"
-FILE_MANAGER="pcmanfm"
-# udiskie = auto-montador: monta el pendrive SOLO al conectarlo, sin hacer clic.
-# NO hace falta para que pcmanfm/Thunar muestren y monten los dispositivos: eso ya
-# lo cubren dbus-run-session + udisks2 + la regla polkit + el gestor de archivos.
-# Ponlo en 1 solo si quieres montaje automatico instantaneo.
-#   0 = el FM muestra el dispositivo y lo montas con un clic  (por defecto)
-#   1 = ademas instala/arranca udiskie para auto-montar al conectar
-# Nota: con Thunar tambien puedes auto-montar SIN udiskie anadiendo 'thunar --daemon &'
-#       a ~/.config/dwm/autostart.sh (thunar-volman se encarga).
-AUTO_MOUNT=0
+# El UNICO gestor de archivos es "lf" (terminal, Super+e). Este instalador NO
+# instala ninguno grafico: si quieres uno, instalalo y configurelo tu mismo, p.ej.
+#   sudo xbps-install -S pcmanfm
+# Lo que si queda lista es la pila de montaje, que es independiente del gestor y
+# permite montar sin contrasena desde la terminal o desde lf:
+#   udisksctl mount -b /dev/sdb1
 
 # ----------------------------------------------------------------
 # 2. Paquetes necesarios
@@ -188,7 +183,7 @@ PAQUETES_BASE="
 
 # Pila para que aparezcan los dispositivos (HDD, pendrives, SD, MTP):
 #   udevd      -> detecta el hardware (eudev)
-#   udisks2    -> monta/desmonta por D-Bus (lo usan pcmanfm y Thunar)
+#   udisks2    -> monta/desmonta por D-Bus (lo usa udisksctl desde la terminal)
 #   polkit     -> decide si hace falta contrasena para montar
 #   elogind    -> sesiones + XDG_RUNTIME_DIR + le dice a polkit quien eres.
 #                OJO: el polkit de Void se compila con -Dsession_tracking=elogind,
@@ -197,22 +192,9 @@ PAQUETES_BASE="
 #   ntfs-3g / exfatprogs -> formatos de pendrives y discos de Windows
 PAQUETES_DISCOS="udisks2 polkit elogind gvfs gvfs-mtp ntfs-3g exfatprogs polkit-gnome"
 
-case "$FILE_MANAGER" in
-    thunar)   PAQUETES_FM="Thunar thunar-volman" ;;
-    pcmanfm)  PAQUETES_FM="pcmanfm" ;;
-    both)     PAQUETES_FM="pcmanfm Thunar thunar-volman" ;;
-    none|"")  PAQUETES_FM="" ;;
-    *) warn "FILE_MANAGER='$FILE_MANAGER' no reconocido (usa pcmanfm, thunar, both o none)."
-       PAQUETES_FM="pcmanfm" ;;
-esac
-
-if [ "$AUTO_MOUNT" = "1" ]; then
-    PAQUETES_FM="$PAQUETES_FM udiskie libnotify"
-fi
-
 info "Instalando dependencias..."
 # shellcheck disable=SC2086
-LISTA=$(filter_pkgs $PAQUETES_BASE $PAQUETES_DISCOS $PAQUETES_FM)
+LISTA=$(filter_pkgs $PAQUETES_BASE $PAQUETES_DISCOS)
 if [ -z "$(printf '%s' "$LISTA" | tr -d ' ')" ]; then
     error "Ningun paquete valido para instalar; revisa tu conexion o tus repos."
     exit 1
@@ -388,9 +370,6 @@ static const Rule rules[] = {
         /* FIX: el WM_CLASS real de Firefox es "Firefox" (F mayuscula);
            con "firefox" la regla nunca coincidia. Verificalo con: xprop WM_CLASS */
         { "Firefox",  NULL,       NULL,       1 << 0,       0,           -1 },
-        /* El gestor de archivos y lf en terminal, flotantes para que no rompan el tile */
-        { "Pcmanfm",  NULL,       NULL,       0,            1,           -1 },
-        { "Thunar",   NULL,       NULL,       0,            1,           -1 },
 };
 
 /* layout(s) */
@@ -432,9 +411,6 @@ static const Key keys[] = {
         { MODKEY,                       XK_t,          spawn,          {.v = termcmd } },
         { MODKEY,                       XK_b,          spawn,          {.v = browsercmd } },
         { MODKEY,                       XK_e,          spawn,          SHCMD("st -e lf") },
-        /* FIX: Super+g abre el gestor de archivos grafico (pcmanfm/Thunar),
-           que es el que muestra los pendrives y HDD montados */
-        { MODKEY,                       XK_g,          spawn,          SHCMD("FILE_MANAGER_CMD") },
 
         { MODKEY,                       XK_q,          killclient,     {0} },
         { MODKEY,                       XK_f,          setlayout,      {.v = &layouts[2]} },
@@ -501,14 +477,6 @@ static const Button buttons[] = {
         { ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 };
 EOF
-
-# Sustituye el marcador por el comando real del gestor de archivos elegido
-case "$FILE_MANAGER" in
-    thunar) FM_CMD="thunar" ;;
-    none|"") FM_CMD="st -e lf" ;;
-    *)       FM_CMD="pcmanfm" ;;
-esac
-sed -i "s|FILE_MANAGER_CMD|$FM_CMD|g" config.h
 
 info "Compilando dwm (como usuario; solo la instalacion usa sudo)..."
 make clean
@@ -628,53 +596,21 @@ fading = false;
 EOF
 
 # ----------------------------------------------------------------
-# 7. Gestor de archivos: que muestre y monte los dispositivos
+# 7. Gestor de archivos: lf (no se instala ninguno grafico)
 # ----------------------------------------------------------------
-if [ "$FILE_MANAGER" = "pcmanfm" ] || [ "$FILE_MANAGER" = "both" ]; then
-    info "Configurando pcmanfm (montar al iniciar + montar removibles + autorun)..."
-    write_config "$HOME/.config/pcmanfm/default/pcmanfm.conf" <<'EOF'
-[config]
-bm_open_method=0
-
-[volume]
-mount_on_startup=1
-mount_removable=1
-autorun=1
-
-[desktop]
-wallpaper_mode=off
-show_wm_menu=0
-
-[ui]
-win_width=900
-win_height=600
-side_pane_mode=places
-view_mode=icon
-show_hidden=0
-sort=name;ascending;
-EOF
-fi
-
-if [ "$FILE_MANAGER" = "thunar" ] || [ "$FILE_MANAGER" = "both" ]; then
-    info "Configurando Thunar + thunar-volman (automontar y abrir)..."
-    # Sin xfconfd corriendo, Thunar lee este archivo directamente al iniciar.
-    write_config "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/thunar-volman.xml" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<channel name="thunar-volman" version="1.0">
-  <property name="automount-media" type="empty">
-    <property name="enabled" type="bool" value="true"/>
-  </property>
-  <property name="automount-drives" type="empty">
-    <property name="enabled" type="bool" value="true"/>
-  </property>
-  <property name="autoopen" type="empty">
-    <property name="enabled" type="bool" value="true"/>
-  </property>
-</channel>
-EOF
-    warn "Si ya tenias XFCE instalado, aplica lo mismo con:"
-    warn "  xfconf-query -c thunar-volman -p /automount-drives/enabled -s true --create -t bool"
-fi
+# "lf" ya viene en PAQUETES_BASE y se configura en el paso 9c (~/.config/lf/lfrc).
+# Se abre con Super+e dentro de una terminal st.
+#
+# Para montar pendrives y discos no hace falta ningun gestor grafico: la pila
+# udisks2 + polkit + elogind del paso 5 permite montar sin contrasena.
+#   lsblk -f                        ver discos y particiones
+#   udisksctl mount -b /dev/sdb1    montar
+#   udisksctl unmount -b /dev/sdb1  desmontar
+# Quedan en /run/media/$USER/
+#
+# Si quieres un gestor grafico de todos modos, instalalo tu y anadele un atajo
+# en ~/dwm/config.h:   sudo xbps-install -S pcmanfm
+info "Gestor de archivos: lf (Super+e). Discos y pendrives: udisksctl mount -b /dev/sdXN"
 
 # ----------------------------------------------------------------
 # 8. Wallpaper
@@ -735,14 +671,6 @@ if ! pgrep -f 'polkit.*authentication.*agent' >/dev/null 2>&1; then
 fi
 
 EOF
-        if [ "$AUTO_MOUNT" = "1" ]; then
-            cat <<'EOF'
-# Montaje automatico de pendrives/HDD al conectarlos.
-#   -a auto-mount  -n notify (usa dunst)  -t tray (opcional, necesita icono de bandeja)
-# Sin esto igual puedes montar haciendo clic en pcmanfm/Thunar (gracias a la regla polkit).
-command -v udiskie >/dev/null 2>&1 && udiskie -an &
-EOF
-        fi
     } > "$HOME/.config/dwm/autostart.sh"
     chmod +x "$HOME/.config/dwm/autostart.sh"
 else
@@ -750,7 +678,7 @@ else
 fi
 
 # FIX clave: el autostart se lanza DESPUES de arrancar el bus de sesion, porque
-# dunst, udiskie, pcmanfm y el agente polkit necesitan DBUS_SESSION_BUS_ADDRESS.
+# dunst y el agente polkit necesitan DBUS_SESSION_BUS_ADDRESS.
 info "Creando wrapper de sesion (/usr/local/bin/dwm-session) con dbus-run-session..."
 sudo tee /usr/local/bin/dwm-session >/dev/null <<'EOF'
 #!/bin/sh
@@ -780,7 +708,7 @@ if command -v dbus-run-session >/dev/null 2>&1; then
     exec dbus-run-session "$DWM_INNER"
 fi
 
-# Sin dbus: arrancamos igual, pero dunst/udiskie/pcmanfm pueden fallar.
+# Sin dbus: arrancamos igual, pero dunst y polkit pueden fallar.
 exec "$DWM_INNER"
 EOF
 sudo chmod 0755 /usr/local/bin/dwm-session
@@ -796,29 +724,6 @@ sudo tee /usr/local/bin/dwm-session-inner >/dev/null <<'EOF'
 exec dwm
 EOF
 sudo chmod 0755 /usr/local/bin/dwm-session-inner
-
-# Comando para recompilar tras editar los config.h de ~/dwm y ~/slstatus
-info "Instalando el comando 'dwm-rebuild'..."
-sudo tee /usr/local/bin/dwm-rebuild >/dev/null <<'EOF'
-#!/bin/sh
-# Recompila e instala dwm y slstatus desde tu home despues de editar sus config.h
-set -e
-for d in dwm slstatus; do
-    echo "==> Compilando $d"
-    cd "$HOME/$d" || exit 1
-    make clean
-    make
-    sudo make install
-done
-# slstatus se puede reiniciar sin cerrar sesion
-if [ -n "$DISPLAY" ]; then
-    pkill -x slstatus 2>/dev/null || true
-    sleep 1
-    nohup slstatus >/dev/null 2>&1 &
-fi
-echo "Listo. Para aplicar los cambios de dwm: Super+Shift+e y vuelve a entrar."
-EOF
-sudo chmod 0755 /usr/local/bin/dwm-rebuild
 
 # ----------------------------------------------------------------
 # 9b. ~/.xinitrc (para poder usar "startx" ademas de lightdm)
@@ -854,7 +759,7 @@ cmd open ${{
 EOF
 # Nota: 'video/|audio/' (sin *) nunca coincide: los MIME son video/mp4, audio/mpeg, etc.
 
-# Los dispositivos montados por udisks2/udiskie aparecen aqui:
+# Los dispositivos montados por udisks2 aparecen aqui:
 mkdir -p "$HOME/.config/gtk-3.0"
 info "Los pendrives montados aparecen en /run/media/$(id -un)/ y en /media."
 
@@ -1018,7 +923,6 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
   Super+d...................... lanzador de programas (dmenu)
   Super+q...................... cerrar la ventana actual
   Super+e...................... gestor de archivos en terminal (lf)
-  Super+g...................... gestor de archivos grafico (pcmanfm)
   Super+b...................... navegador (Firefox)
   Super+Shift+e................ cerrar sesion (volver al login)
 
@@ -1053,10 +957,9 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
   Super+b...................... navegador (Firefox)
   Super+e...................... lf, gestor de archivos en terminal (dentro de
                                 st)
-  Super+g...................... pcmanfm, gestor de archivos grafico
 
-    Nota: Super+g abre el gestor grafico, que es el que muestra los pendrives
-    y discos montados. Super+e abre lf, que es solo terminal.
+    Nota: lf es el unico gestor de archivos; no se instala ninguno grafico.
+    Para montar pendrives y discos usa udisksctl (seccion PENDRIVES Y DISCOS).
 
 ------------------------------------------------------------------------------
  VENTANAS
@@ -1084,7 +987,10 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
   La barra la dibuja el propio dwm y su contenido lo genera slstatus. Muestra
   CPU, RAM, la red wifi, la bateria (si hay) y la fecha.
 
-  Se cambia editando ~/slstatus/config.h y ejecutando dwm-rebuild.
+  Se cambia editando ~/slstatus/config.h y recompilando:
+    cd ~/slstatus && sudo make clean install
+    pkill -x slstatus; sleep 1; slstatus &
+  (la ultima linea reinicia la barra sin cerrar sesion)
 
 ------------------------------------------------------------------------------
  LAYOUTS
@@ -1191,18 +1097,18 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
   El instalador deja configurado udisks2 + polkit + elogind para que puedas
   montar discos sin contrasena (si tu usuario esta en el grupo wheel).
 
-  Super+g...................... abrir pcmanfm: los dispositivos salen en el
-                                panel izquierdo
-  clic en el dispositivo....... se monta solo, sin pedir contrasena
+  No hay gestor de archivos grafico: todo se hace desde la terminal (o desde
+  lf, que corre dentro de st).
 
   Donde quedan montados:
   /run/media/TU-USUARIO/....... pendrives y tarjetas (los monta udisks2)
   /media/...................... otros puntos de montaje
 
-  Para hacerlo desde la terminal:
+  Comandos utiles:
   lsblk -f..................... ver los discos y sus particiones
   udisksctl mount -b /dev/sdb1  montar una particion concreta
   udisksctl unmount -b /dev/sdb1  desmontarla
+  udisksctl list............... dispositivos que reconoce udisks2
 
     Nota: La regla que permite montar sin contrasena esta en
     /etc/polkit-1/rules.d/49-udisks2-wheel.rules. Hace falta reiniciar la
@@ -1213,11 +1119,13 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
 ------------------------------------------------------------------------------
 
   Paso 1....................... editar ~/dwm/config.h y cambiar la tecla
-  Paso 2....................... ejecutar dwm-rebuild (recompila e instala)
+  Paso 2....................... cd ~/dwm && sudo make clean install
   Paso 3....................... Super+Shift+e para salir y volver a entrar
 
-    Nota: dwm-rebuild tambien recompila slstatus y lo reinicia sin cerrar
-    sesion.
+    Si tambien cambiaste ~/slstatus/config.h:
+      cd ~/slstatus && sudo make clean install
+      pkill -x slstatus; sleep 1; slstatus &
+    Asi la barra se actualiza sin cerrar sesion.
 
 ------------------------------------------------------------------------------
  ARCHIVOS PARA PERSONALIZAR
@@ -1239,7 +1147,6 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
   slstatus (la barra).......... https://tools.suckless.org/slstatus
   vanitygaps (parche).......... https://dwm.suckless.org/patches/vanitygaps
   lf (archivos)................ https://github.com/gokcehan/lf
-  pcmanfm...................... https://github.com/lxqt/pcmanfm
 
   Manuales en tu terminal: man 1 dwm | man 1 st | man 1 dmenu | man 1 lf
 
@@ -1292,5 +1199,5 @@ info "  ~/.config/picom/picom.conf         transparencias"
 info "  ~/.config/lf/lfrc                  gestor de archivos de terminal"
 info "  ~/Atajos.txt                       chuleta de atajos (nano ~/Atajos.txt)"
 info "  /etc/polkit-1/rules.d/49-udisks2-wheel.rules   permisos de montaje"
-info "Despues de editar los config.h ejecuta: dwm-rebuild"
+info "Despues de editar los config.h: cd ~/dwm && sudo make clean install"
 warn "Si no ves la sesion 'dwm' en el login: revisa /usr/share/xsessions/dwm.desktop"
