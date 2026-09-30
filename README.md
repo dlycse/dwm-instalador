@@ -219,8 +219,8 @@ Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulare
 ### Ejemplo: cambiar un atajo de teclado
 
 ```bash
-nano ~/dwm/config.h    # 1. edita la tecla
-dwm-rebuild            # 2. recompila dwm y slstatus
+nano ~/dwm/config.h     # 1. edita la tecla
+sudo make clean install # 2. recompila dwm y slstatus
 # 3. Super+Shift+E para salir y vuelve a entrar
 ```
 
