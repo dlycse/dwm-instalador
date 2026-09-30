@@ -224,7 +224,7 @@ sudo make clean install # 2. recompila dwm y slstatus
 # 3. Super+Shift+E para salir y vuelve a entrar
 ```
 
-> `dwm-rebuild` reinicia **slstatus** sin cerrar la sesión, así que los cambios de barra se ven al instante.
+> `sudo make clean install` reinicia **slstatus** sin cerrar la sesión, así que los cambios de barra se ven al instante.
 
 ### Cambiar el fondo de pantalla
 
