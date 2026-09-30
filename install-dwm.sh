@@ -991,6 +991,262 @@ case "$ACT_KERNEL" in
 esac
 
 # ----------------------------------------------------------------
+# 12b. Chuleta de atajos en TEXTO PLANO (para leerla con nano)
+# ----------------------------------------------------------------
+# Este archivo se genera AQUI, en la maquina, y NO existe en el repositorio:
+#   - En GitHub solo se ve Atajos.md, con formato markdown bonito.
+#   - En el equipo queda ~/Atajos.txt: texto plano, sin markdown ni acentos,
+#     alineado con puntos y ajustado a 78 columnas, que es lo que de verdad
+#     se lee bien en una terminal con 'nano ~/Atajos.txt'.
+# El markdown no sirve en nano (las tablas | y los ** se ven como ruido),
+# y el texto plano no sirve en GitHub (colapsa los espacios). Por eso van
+# separados: cada uno en su sitio.
+info "Creando la chuleta de atajos ~/Atajos.txt (leela con: nano ~/Atajos.txt)..."
+write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
+
+==============================================================================
+ ATAJOS DE TECLADO - dwm + slstatus
+==============================================================================
+  Lista completa de los atajos que deja configurados el instalador.
+  "Super" es la tecla del logo de Windows (en teclados Mac es Command).
+
+------------------------------------------------------------------------------
+ SI ACABAS DE INSTALAR, CON ESTO YA ALCANZA
+------------------------------------------------------------------------------
+
+  Super+Enter.................. abrir una terminal (st)
+  Super+d...................... lanzador de programas (dmenu)
+  Super+q...................... cerrar la ventana actual
+  Super+e...................... gestor de archivos en terminal (lf)
+  Super+g...................... gestor de archivos grafico (pcmanfm)
+  Super+b...................... navegador (Firefox)
+  Super+Shift+e................ cerrar sesion (volver al login)
+
+  Con esos siete ya puedes manejarte. El resto lo vas aprendiendo sobre la
+  marcha.
+
+------------------------------------------------------------------------------
+ GLOSARIO RAPIDO
+------------------------------------------------------------------------------
+
+  tag.......................... un "escritorio virtual"; hay 9 y cada uno
+                                guarda sus ventanas
+  area maestra................. la ventana grande y principal del mosaico
+  layout....................... la forma en que se reparten las ventanas
+  monocle...................... una sola ventana ocupando toda la pantalla
+  flotante..................... ventana fuera del mosaico; la mueves a mano
+  barra........................ la linea de arriba (slstatus): tags, layout,
+                                CPU, RAM, hora
+  gaps......................... separacion entre ventanas (AQUI SI estan
+                                activos)
+
+  dwm es un gestor de ventanas en mosaico: no apila ventanas como Windows, las
+  reparte automaticamente por la pantalla.
+
+------------------------------------------------------------------------------
+ PROGRAMAS
+------------------------------------------------------------------------------
+
+  Super+d...................... lanzador de aplicaciones (dmenu)
+  Super+Enter.................. terminal (st)
+  Super+t...................... terminal (st), atajo alternativo
+  Super+b...................... navegador (Firefox)
+  Super+e...................... lf, gestor de archivos en terminal (dentro de
+                                st)
+  Super+g...................... pcmanfm, gestor de archivos grafico
+
+    Nota: Super+g abre el gestor grafico, que es el que muestra los pendrives
+    y discos montados. Super+e abre lf, que es solo terminal.
+
+------------------------------------------------------------------------------
+ VENTANAS
+------------------------------------------------------------------------------
+
+  Super+q...................... cerrar la ventana enfocada
+  Super+j...................... enfocar la siguiente ventana
+  Super+Abajo.................. enfocar la siguiente ventana (igual que
+                                Super+j)
+  Super+k...................... enfocar la ventana anterior
+  Super+Arriba................. enfocar la ventana anterior (igual que
+                                Super+k)
+  Super+h...................... achicar el area maestra
+  Super+l...................... agrandar el area maestra
+  Super+i...................... una ventana mas en el area maestra
+  Super+Shift+t................ volver la ventana flotante (o devolverla al
+                                mosaico)
+
+------------------------------------------------------------------------------
+ BARRA (slstatus)
+------------------------------------------------------------------------------
+
+  Super+w...................... ocultar o mostrar la barra
+
+  La barra la dibuja el propio dwm y su contenido lo genera slstatus. Muestra
+  CPU, RAM, la red wifi, la bateria (si hay) y la fecha.
+
+  Se cambia editando ~/slstatus/config.h y ejecutando dwm-rebuild.
+
+------------------------------------------------------------------------------
+ LAYOUTS
+------------------------------------------------------------------------------
+
+  []=.......................... mosaico: area maestra + columna de ventanas
+                                (el inicial)
+  "><>"........................ flotante: cada ventana se mueve y redimensiona
+                                a mano
+  [M].......................... monocle: una sola ventana ocupando todo
+
+  Super+r...................... alternar con el layout anterior
+  Super+Space.................. alternar con el layout anterior (igual que
+                                Super+r)
+  Super+f...................... ir directo a monocle
+
+    Nota: El simbolo del layout activo se ve a la izquierda en la barra. El
+    flotante ("><>") no tiene tecla propia: se llega alternando con Super+r.
+
+------------------------------------------------------------------------------
+ TAGS (los 9 escritorios)
+------------------------------------------------------------------------------
+
+  Super+1 ... 9................ ir a ese tag
+  Super+Shift+1 ... 9.......... mover la ventana actual a ese tag
+  Super+Ctrl+1 ... 9........... ver ese tag junto con el actual
+  Super+Ctrl+Shift+1..9........ la ventana aparece en ambos tags sin moverla
+  Super+Tab.................... volver al tag anterior
+
+  Idea de uso: terminal en el tag 1, navegador en el 2, musica en el 3, chat
+  en el 4.
+
+------------------------------------------------------------------------------
+ MONITORES
+------------------------------------------------------------------------------
+
+  Super+,...................... enfocar el monitor anterior (izquierda)
+  Super+....................... enfocar el monitor siguiente (derecha)
+  Super+Shift+,................ enviar la ventana al monitor anterior
+  Super+Shift+................. enviar la ventana al monitor siguiente
+
+------------------------------------------------------------------------------
+ GAPS - AQUI SI ESTAN ACTIVOS
+------------------------------------------------------------------------------
+
+  El instalador aplica el parche vanitygaps a dwm 6.2, asi que la separacion
+  entre ventanas funciona desde el primer momento.
+
+  Super+Ctrl+u................. aumentar la separacion entre ventanas
+  Super+Ctrl+Shift+u........... disminuir la separacion
+  Super+Ctrl+0................. activar o desactivar gaps
+  Super+Ctrl+Shift+0........... restablecer los gaps a su valor inicial
+
+  Los valores iniciales (10 px) se cambian en ~/dwm/config.h: gappih, gappiv,
+  gappoh y gappov.
+
+------------------------------------------------------------------------------
+ TECLAS ESPECIALES (sin Super)
+------------------------------------------------------------------------------
+
+  Subir volumen................ sube 3 % (amixer / ALSA)
+  Bajar volumen................ baja 3 %
+  Mute......................... silenciar o restaurar
+  Brillo arriba................ sube 5 % (brightnessctl)
+  Brillo abajo................. baja 5 %
+  Print / Impr Pant............ captura de pantalla (scrot) en ~/Pictures
+
+------------------------------------------------------------------------------
+ SALIR
+------------------------------------------------------------------------------
+
+  Super+Shift+e................ cerrar la sesion de dwm (vuelves a lightdm)
+
+  Si dwm se congela: Ctrl+Alt+F1 para ir a una consola y ahi 'sudo reboot'.
+
+------------------------------------------------------------------------------
+ RATON SOBRE LAS VENTANAS
+------------------------------------------------------------------------------
+
+  Super+clic izquierdo......... mover la ventana (arrastrando)
+  Super+clic central........... alternar ventana flotante
+  Super+clic derecho........... redimensionar la ventana (arrastrando)
+
+------------------------------------------------------------------------------
+ RATON SOBRE LA BARRA
+------------------------------------------------------------------------------
+
+  En dwm los clics de la barra SI funcionan (van en el array buttons[] de
+  config.h).
+
+  clic izq. en el layout....... alternar con el layout anterior
+  clic der. en el layout....... ir directo a monocle
+  clic central en el titulo.... pasar esa ventana al area maestra (zoom)
+  clic central en el estado.... abrir una terminal (st)
+  clic izq. en un numero....... ir a ese tag
+  clic der. en un numero....... ver ese tag junto con el actual
+  Super+clic izq. en un num.... mover la ventana a ese tag
+  Super+clic der. en un num.... anadir o quitar la ventana de ese tag
+
+------------------------------------------------------------------------------
+ PENDRIVES Y DISCOS DUROS
+------------------------------------------------------------------------------
+
+  El instalador deja configurado udisks2 + polkit + elogind para que puedas
+  montar discos sin contrasena (si tu usuario esta en el grupo wheel).
+
+  Super+g...................... abrir pcmanfm: los dispositivos salen en el
+                                panel izquierdo
+  clic en el dispositivo....... se monta solo, sin pedir contrasena
+
+  Donde quedan montados:
+  /run/media/TU-USUARIO/....... pendrives y tarjetas (los monta udisks2)
+  /media/...................... otros puntos de montaje
+
+  Para hacerlo desde la terminal:
+  lsblk -f..................... ver los discos y sus particiones
+  udisksctl mount -b /dev/sdb1  montar una particion concreta
+  udisksctl unmount -b /dev/sdb1  desmontarla
+
+    Nota: La regla que permite montar sin contrasena esta en
+    /etc/polkit-1/rules.d/49-udisks2-wheel.rules. Hace falta reiniciar la
+    sesion despues de instalar para que el grupo wheel surta efecto.
+
+------------------------------------------------------------------------------
+ CAMBIAR ESTOS ATAJOS
+------------------------------------------------------------------------------
+
+  Paso 1....................... editar ~/dwm/config.h y cambiar la tecla
+  Paso 2....................... ejecutar dwm-rebuild (recompila e instala)
+  Paso 3....................... Super+Shift+e para salir y volver a entrar
+
+    Nota: dwm-rebuild tambien recompila slstatus y lo reinicia sin cerrar
+    sesion.
+
+------------------------------------------------------------------------------
+ ARCHIVOS PARA PERSONALIZAR
+------------------------------------------------------------------------------
+
+  ~/dwm/config.h............... atajos, colores, fuentes, gaps, reglas
+  ~/slstatus/config.h.......... que muestra la barra (CPU, RAM, bateria...)
+  ~/.config/dwm/autostart.sh... programas que arrancan con dwm
+  ~/.config/picom/picom.conf... transparencias y compositor
+  ~/.config/lf/lfrc............ gestor de archivos lf
+  /usr/local/bin/dwm-session... wrapper de sesion (dbus-run-session)
+  /etc/polkit-1/rules.d/....... permisos de montaje de discos
+
+------------------------------------------------------------------------------
+ REFERENCIAS
+------------------------------------------------------------------------------
+
+  dwm.......................... https://dwm.suckless.org
+  slstatus (la barra).......... https://tools.suckless.org/slstatus
+  vanitygaps (parche).......... https://dwm.suckless.org/patches/vanitygaps
+  lf (archivos)................ https://github.com/gokcehan/lf
+  pcmanfm...................... https://github.com/lxqt/pcmanfm
+
+  Manuales en tu terminal: man 1 dwm | man 1 st | man 1 dmenu | man 1 lf
+
+==============================================================================
+ATAJOS_EOF
+
+# ----------------------------------------------------------------
 # 13. Verificacion final
 # ----------------------------------------------------------------
 echo
@@ -1008,6 +1264,9 @@ done
 [ -f /etc/polkit-1/rules.d/49-udisks2-wheel.rules ] \
     && info "  regla polkit: /etc/polkit-1/rules.d/49-udisks2-wheel.rules" \
     || warn "  regla polkit: NO se creo"
+[ -f "$HOME/Atajos.txt" ] \
+    && info "  chuleta de atajos: ~/Atajos.txt (nano ~/Atajos.txt)" \
+    || warn "  chuleta de atajos: NO se creo ~/Atajos.txt"
 
 echo
 info "¡Instalacion lista!"
@@ -1031,6 +1290,7 @@ info "  ~/slstatus/config.h                barra de estado"
 info "  ~/.config/dwm/autostart.sh         programas que arrancan con dwm"
 info "  ~/.config/picom/picom.conf         transparencias"
 info "  ~/.config/lf/lfrc                  gestor de archivos de terminal"
+info "  ~/Atajos.txt                       chuleta de atajos (nano ~/Atajos.txt)"
 info "  /etc/polkit-1/rules.d/49-udisks2-wheel.rules   permisos de montaje"
 info "Despues de editar los config.h ejecuta: dwm-rebuild"
 warn "Si no ves la sesion 'dwm' en el login: revisa /usr/share/xsessions/dwm.desktop"
