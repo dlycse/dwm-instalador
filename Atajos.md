@@ -22,12 +22,11 @@ Lista **completa y real** de los atajos que deja configurados el instalador.
 | Abrir una **terminal** | `Super` + `Enter` |
 | Abrir un **programa** (lanzador) | `Super` + `D` |
 | **Cerrar** la ventana que estás usando | `Super` + `Q` |
-| Ver tus **archivos** (terminal) | `Super` + `E` |
-| Ver tus **archivos** (ventana gráfica) | `Super` + `G` |
+| Ver tus **archivos** (`lf`) | `Super` + `E` |
 | Abrir el **navegador** | `Super` + `B` |
 | **Cerrar la sesión** (volver al login) | `Super` + `Shift` + `E` |
 
-Con esos siete ya puedes manejarte. El resto lo vas aprendiendo sobre la marcha.
+Con esos seis ya puedes manejarte. El resto lo vas aprendiendo sobre la marcha.
 
 ---
 
@@ -56,11 +55,13 @@ Un gestor de ventanas **mosaico** (*tiling*) no apila ventanas como Windows: las
 | `Super` + `T` | **Terminal** (st) — atajo alternativo |
 | `Super` + `B` | **Firefox** |
 | `Super` + `E` | **lf**, gestor de archivos en terminal (se abre dentro de st) |
-| `Super` + `G` | **pcmanfm**, gestor de archivos gráfico |
 
-> ⚠️ **Ojo con estas dos:** `Super` + `E` abre **lf** (terminal) y `Super` + `G` abre **pcmanfm**
-> (ventana gráfica, que es el que muestra los pendrives y discos montados).
-> `Super` + `R` **no** abre lf — es el de alternar layout.
+> ⚠️ **`lf` es el único gestor de archivos.** Este instalador **no** instala ninguno
+> gráfico. Si quieres uno, instálalo tú y añádele un atajo en `~/dwm/config.h`:
+> ```bash
+> sudo xbps-install -S pcmanfm
+> ```
+> Y recuerda que `Super` + `R` **no** abre lf — es el de alternar layout.
 
 ---
 
@@ -87,7 +88,13 @@ Un gestor de ventanas **mosaico** (*tiling*) no apila ventanas como Windows: las
 La barra la dibuja **dwm** y su texto lo genera **slstatus**: CPU, RAM, la red wifi,
 la batería (si el equipo tiene) y la fecha.
 
-Para cambiar lo que muestra: edita `~/slstatus/config.h` y ejecuta `dwm-rebuild`.
+Para cambiar lo que muestra:
+
+```bash
+nano ~/slstatus/config.h
+cd ~/slstatus && sudo make clean install
+pkill -x slstatus; sleep 1; slstatus &   # reinicia la barra sin cerrar sesión
+```
 
 ---
 
@@ -202,19 +209,16 @@ En dwm los clics de la barra **sí funcionan** (viven en el array `buttons[]` de
 El instalador deja configurados **udisks2 + polkit + elogind** para que puedas montar
 discos **sin contraseña** (si tu usuario está en el grupo `wheel`).
 
-| Qué quieres | Cómo |
+No hay gestor de archivos gráfico: todo se hace desde la terminal (o desde `lf`, que
+corre dentro de `st`).
+
+| Qué quieres | Comando |
 |---|---|
-| Ver los dispositivos | `Super` + `G` → en el panel izquierdo de pcmanfm |
-| Montar uno | **Clic** sobre el dispositivo (no pide contraseña) |
+| Ver los discos y particiones | `lsblk -f` |
+| Ver qué dispositivos reconoce udisks2 | `udisksctl list` |
+| **Montar** uno (sin contraseña) | `udisksctl mount -b /dev/sdb1` |
+| **Desmontarlo** | `udisksctl unmount -b /dev/sdb1` |
 | Ver dónde se montó | `/run/media/TU-USUARIO/` |
-
-Desde la terminal:
-
-```bash
-lsblk -f                          # ver discos y particiones
-udisksctl mount -b /dev/sdb1      # montar sin contraseña
-udisksctl unmount -b /dev/sdb1    # desmontar
-```
 
 > La regla que lo permite está en `/etc/polkit-1/rules.d/49-udisks2-wheel.rules`.
 > Hace falta **reiniciar la sesión** después de instalar para que el grupo `wheel` surta efecto.
@@ -224,12 +228,14 @@ udisksctl unmount -b /dev/sdb1    # desmontar
 ## 🎨 Cambiar estos atajos
 
 ```bash
-nano ~/dwm/config.h     # 1. busca la tecla y cámbiala
-sudo make clean install # 2. recompila e instala
+nano ~/dwm/config.h                   # 1. busca la tecla y cámbiala
+cd ~/dwm && sudo make clean install   # 2. recompila e instala
 # 3. Super + Shift + E para salir, y vuelve a entrar
 ```
 
-> `dwm-rebuild` recompila **dwm y slstatus**, y reinicia slstatus sin cerrar la sesión.
+> ⚠️ `sudo make clean install` recompila **solo el proyecto en cuya carpeta estés**.
+> Para la barra: `cd ~/slstatus && sudo make clean install` y luego
+> `pkill -x slstatus; sleep 1; slstatus &` para ver el cambio sin cerrar sesión.
 
 | Archivo | Qué se cambia ahí |
 |---|---|
@@ -251,6 +257,5 @@ sudo make clean install # 2. recompila e instala
 | **slstatus** (contenido de la barra) | https://tools.suckless.org/slstatus |
 | **vanitygaps** (parche de gaps) | https://dwm.suckless.org/patches/vanitygaps |
 | **lf** (gestor de archivos) | https://github.com/gokcehan/lf |
-| **pcmanfm** | https://github.com/lxqt/pcmanfm |
 
 Manuales en tu terminal: `man 1 dwm` · `man 1 st` · `man 1 dmenu` · `man 1 lf`
