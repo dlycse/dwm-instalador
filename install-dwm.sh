@@ -67,21 +67,6 @@ disable_service() {
         sudo rm -f "/var/service/$svc" && warn "Servicio deshabilitado: $svc"
     fi
 }
-
-# Filtra una lista de paquetes: descarta los que no existen en los repos para que
-# un nombre mal escrito no aborte toda la instalacion.
-filter_pkgs() {
-    OK=""
-    for p in "$@"; do
-        if xbps-query -Rs "$p" 2>/dev/null | grep -qE "^\[[^]]*\][[:space:]]+${p}-[0-9]"; then
-            OK="$OK $p"
-        else
-            warn "El paquete '$p' no existe en los repos; se omite."
-        fi
-    done
-    printf '%s' "$OK"
-}
-
 # ----------------------------------------------------------------
 # Comprobaciones previas
 # ----------------------------------------------------------------
@@ -167,7 +152,7 @@ WALLPAPER_URL="https://wallpapercave.com/download/empty-error-wallpapers-wp83307
 # 'git' es obligatorio (el script clona dwm y slstatus): en v2 se habia borrado de
 # la lista y base-devel NO lo incluye, asi que en un sistema limpio fallaba el clone.
 PAQUETES_BASE="
-    base-devel git file curl wget nano
+    base-devel file curl wget nano
     libX11-devel libXft-devel libXinerama-devel
     freetype-devel fontconfig-devel
     xorg xinit
@@ -191,6 +176,21 @@ PAQUETES_BASE="
 #   gvfs       -> MTP (celulares), papelera, miniaturas
 #   ntfs-3g / exfatprogs -> formatos de pendrives y discos de Windows
 PAQUETES_DISCOS="udisks2 polkit elogind gvfs gvfs-mtp ntfs-3g exfatprogs polkit-gnome"
+
+# Filtra una lista de paquetes: descarta los que no existen en los repos para que
+# un nombre mal escrito no aborte toda la instalacion.
+# Los avisos van a stderr (>&2) para que $(...) no los meta en la lista.
+filter_pkgs() {
+    OK=""
+    for p in "$@"; do
+        if xbps-query -R "$p" >/dev/null 2>&1; then
+            OK="$OK $p"
+        else
+            warn "El paquete '$p' no existe en los repos; se omite." >&2
+        fi
+    done
+    printf '%s' "$OK"
+}
 
 info "Instalando dependencias..."
 # shellcheck disable=SC2086
