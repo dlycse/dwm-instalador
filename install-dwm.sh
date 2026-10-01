@@ -637,6 +637,7 @@ fi
 # ----------------------------------------------------------------
 info "Creando ~/.config/dwm/autostart.sh (programas que arrancan con dwm)..."
 if [ ! -f "$HOME/.config/dwm/autostart.sh" ]; then
+    mkdir -p "$HOME/.config/dwm"
     {
         cat <<EOF
 #!/bin/sh
