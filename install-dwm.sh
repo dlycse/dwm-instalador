@@ -73,7 +73,7 @@ disable_service() {
 filter_pkgs() {
     OK=""
     for p in "$@"; do
-        if xbps-query -Rs "$p" 2>/dev/null | grep -qE "(^|\[)${p}-[0-9]"; then
+        if xbps-query -Rs "$p" 2>/dev/null | grep -qE "^\[[^]]*\][[:space:]]+${p}-[0-9]"; then
             OK="$OK $p"
         else
             warn "El paquete '$p' no existe en los repos; se omite."
