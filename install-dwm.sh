@@ -1,5 +1,5 @@
 #!/bin/sh
-# install-dwm.sh  (v0.7) 
+# install-dwm.sh  (v0.8) 
 # Instalador de dwm + rice personalizado (Void Linux)
 #      + polkit/udisks2/elogind para montar HDD y pendrives sin contrasena
 #      + exec dbus-run-session dwm (bus de sesion garantizado) 
