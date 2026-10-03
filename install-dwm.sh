@@ -109,20 +109,64 @@ fi
 # ----------------------------------------------------------------
 info "Detectando hardware..."
 
-WIFI_IFACE=$(ip route 2>/dev/null | grep default | awk '{print $5}' | head -n1 || true)
-if [ -z "$WIFI_IFACE" ]; then
-    warn "No se pudo detectar interfaz de red activa, usando 'eth0' por defecto."
-    WIFI_IFACE="eth0"
+# --- Wifi: primera interfaz que tenga /sys/class/net/X/wireless ---
+WIFI_IFACE=""
+for IFACE_DIR in /sys/class/net/*; do
+    if [ -d "$IFACE_DIR/wireless" ]; then
+        WIFI_IFACE=$(basename "$IFACE_DIR")
+        break
+    fi
+done
+if [ -n "$WIFI_IFACE" ]; then
+    info "Interfaz wifi: $WIFI_IFACE"
+else
+    warn "No se detecto wifi; no se mostrara en la barra."
 fi
 
+# --- Bateria ---
 BAT_NAME=$(ls /sys/class/power_supply/ 2>/dev/null | grep -E '^BAT' | head -n1 || true)
 if [ -z "$BAT_NAME" ]; then
     warn "No se detecto bateria; no se mostrara en la barra."
     BAT_NAME="n/a"
 fi
+info "Bateria: $BAT_NAME"
 
-info "Interfaz de red: $WIFI_IFACE"
-info "Bateria: ${BAT_NAME:-n/a}"
+# --- Control de brillo (portatiles) ---
+HAY_BACKLIGHT=0
+if [ -n "$(ls -A /sys/class/backlight 2>/dev/null)" ]; then
+    HAY_BACKLIGHT=1
+    info "Control de brillo detectado."
+else
+    warn "No se detecto control de brillo; no se enlazaran las teclas de brillo."
+fi
+
+# --- Tamano de fuente segun la resolucion del monitor conectado ---
+# Se puede forzar:  FONT_SIZE=9 sh install-dwm.sh
+FONT_SIZE="${FONT_SIZE:-}"
+if [ -z "$FONT_SIZE" ]; then
+    ANCHO=""
+    for D in /sys/class/drm/card*-*; do
+        [ -r "$D/status" ] || continue
+        [ "$(cat "$D/status")" = "connected" ] || continue
+        MODO=$(head -n1 "$D/modes" 2>/dev/null || true)
+        ANCHO="${MODO%%x*}"
+        break
+    done
+    case "$ANCHO" in
+        ''|*[!0-9]*) FONT_SIZE=11 ;;
+        *) if [ "$ANCHO" -ge 3000 ]; then
+               FONT_SIZE=15
+           elif [ "$ANCHO" -ge 2400 ]; then
+               FONT_SIZE=13
+           else
+               FONT_SIZE=11
+           fi ;;
+    esac
+fi
+case "$FONT_SIZE" in
+    ''|*[!0-9]*) warn "FONT_SIZE no es un numero; se usa 11."; FONT_SIZE=11 ;;
+esac
+info "Tamano de fuente: $FONT_SIZE"
 
 # ----------------------------------------------------------------
 # 1. Variables de configuracion (edita a tu gusto)
@@ -332,7 +376,8 @@ else
 fi
 
 info "Escribiendo config.h de dwm..."
-write_config config.h <<'EOF'
+CFG_TMP=$(mktemp)
+cat > "$CFG_TMP" <<'EOF'
 #include <X11/XF86keysym.h>
 /* See LICENSE file for copyright and license details. */
 
@@ -478,6 +523,15 @@ static const Button buttons[] = {
 };
 EOF
 
+
+# Ajustes segun el hardware detectado
+sed -i "s/size=11/size=$FONT_SIZE/g" "$CFG_TMP"
+if [ "$HAY_BACKLIGHT" -eq 0 ]; then
+    sed -i '/XF86XK_MonBrightness/d' "$CFG_TMP"
+fi
+write_config config.h < "$CFG_TMP"
+rm -f "$CFG_TMP"
+
 info "Compilando dwm (como usuario; solo la instalacion usa sudo)..."
 make clean
 make
@@ -510,7 +564,7 @@ static const struct arg args[] = {
     { cpu_perc,       "CPU %s%% ",     NULL },
     { ram_perc,       "RAM %s%% ",     NULL },
 EOF
-    if [ -d "/sys/class/net/$WIFI_IFACE/wireless" ]; then
+    if [ -n "$WIFI_IFACE" ]; then
         printf '    { wifi_essid,     " %%s ",          "%s" },\n' "$WIFI_IFACE"
     fi
     if [ "$BAT_NAME" != "n/a" ]; then
