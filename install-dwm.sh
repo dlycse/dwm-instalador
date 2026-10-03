@@ -1215,7 +1215,7 @@ for s in udevd dbus elogind polkitd lightdm; do
         warn "  servicio $s: NO habilitado"
     fi
 done
-[ -f /etc/polkit-1/rules.d/49-udisks2-wheel.rules ] \
+sudo test -f /etc/polkit-1/rules.d/49-udisks2-wheel.rules \
     && info "  regla polkit: /etc/polkit-1/rules.d/49-udisks2-wheel.rules" \
     || warn "  regla polkit: NO se creo"
 [ -f "$HOME/Atajos.txt" ] \
