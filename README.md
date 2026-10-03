@@ -3,7 +3,7 @@
 Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya preconfigurado para **Void Linux**.
 
 > ### ⚠️ VERSIÓN 0.8 (BETA) — puede contener errores
-> **SOLO PARA VOID LINUX.** Necesitas **mínimo 20 GB libres** para evitar errores de almacenamiento.
+> **SOLO PARA VOID LINUX.** Necesitas **mínimo 20 GB libres + 1 GB para el efi** para evitar errores de almacenamiento.
 
 <img width="2880" height="2160" alt="Captura del escritorio dwm con la barra slstatus" src="https://github.com/user-attachments/assets/daacd093-3cd8-4330-ad5d-e77d1c1ad982" />
 
