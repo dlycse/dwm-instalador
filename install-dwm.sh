@@ -175,13 +175,14 @@ DWM_REPO="https://git.suckless.org/dwm"
 DWM_TAG="6.2"          # el parche vanitygaps es para 6.2; HEAD del repo va en 6.8+
 DWM_BRANCH="v6.2-local"
 SLSTATUS_REPO="https://git.suckless.org/slstatus"
+ST_REPO="https://git.suckless.org/st"
 VANITYGAPS_URL="https://dwm.suckless.org/patches/vanitygaps/dwm-vanitygaps-6.2.diff"
 
 WALLPAPER_DIR="$HOME/Pictures"
 WALLPAPER_PATH="$WALLPAPER_DIR/wallpaper.jpg"
-# Wallpaper fijo (Empty Error - wallpapercave). Ojo: el archivo real es un PNG de
-# 1280x800; se guarda con extension .jpg pero feh lo lee igual.
-WALLPAPER_URL="https://wallpapercave.com/download/empty-error-wallpapers-wp8330753"
+# Mismo fondo que el instalador de dwl (anime 4K). Se descarga solo si no existe
+# ~/Pictures/wallpaper.jpg; el sitio exige User-Agent de navegador y referer.
+WALLPAPER_URL="https://wallpaperaccess.com/download/anime-4k-laptop-8523463"
 
 # El UNICO gestor de archivos es "lf" (terminal, Super+e). Este instalador NO
 # instala ninguno grafico: si quieres uno, instalalo y configurelo tu mismo, p.ej.
@@ -198,9 +199,9 @@ WALLPAPER_URL="https://wallpapercave.com/download/empty-error-wallpapers-wp83307
 PAQUETES_BASE="
     base-devel file curl wget nano
     libX11-devel libXft-devel libXinerama-devel
-    freetype-devel fontconfig-devel
+    freetype-devel fontconfig-devel ncurses
     xorg xinit
-    dmenu st slock dunst picom feh
+    dmenu slock dunst picom feh
     alsa-utils brightnessctl scrot util-linux xdg-utils
     nerd-fonts
     lf mpv zathura zathura-pdf-poppler
@@ -394,15 +395,16 @@ static const int topbar             = 1;
 static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=11" };
 static const char dmenufont[]       = "JetBrainsMono Nerd Font:size=11";
 
-static const char col_gray1[]       = "#1e1e2e";
-static const char col_gray2[]       = "#313244";
-static const char col_gray3[]       = "#cdd6f4";
-static const char col_gray4[]       = "#ffffff";
-static const char col_cyan[]        = "#89b4fa";
+/* Paleta Tokyo Night, la misma que el instalador de dwl (dwlb y foot) */
+static const char col_gray1[]       = "#1a1b26";  /* fondo */
+static const char col_gray2[]       = "#3b4261";  /* borde normal */
+static const char col_gray3[]       = "#c0caf5";  /* texto normal */
+static const char col_gray4[]       = "#1a1b26";  /* texto sobre seleccion */
+static const char col_cyan[]        = "#7dcfff";  /* seleccion y borde activo */
 static const char *colors[][3]      = {
         /*               fg         bg         border   */
         [SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-        [SchemeSel]  = { col_gray4, col_gray1, col_cyan  },
+        [SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
 };
 
 /* tagging */
@@ -559,26 +561,88 @@ static const char unknown_str[] = "n/a";
 
 static const struct arg args[] = {
     /* funcion         format            argumento */
-    /* CPU y RAM siempre visibles. Para la RAM en vez de porcentaje puedes usar
-       ram_used (ej. "1.2 GiB") o ram_free; y para la CPU, cpu_freq (MHz). */
-    { cpu_perc,       "CPU %s%% ",     NULL },
-    { ram_perc,       "RAM %s%% ",     NULL },
+    /* Mismo orden que la barra de dwl: [CPU] [RAM] [VOL] ... hora.
+       CPU = carga de 1 min (primer valor de /proc/loadavg), como en la captura. */
+    { run_command,    "[CPU %s] ",     "cut -d' ' -f1 /proc/loadavg" },
+    { ram_used,       "[RAM %s] ",     NULL },
+    { run_command,    "[VOL %s] ",     "amixer get Master 2>/dev/null | grep -o '[0-9]*%' | head -n1" },
 EOF
     if [ -n "$WIFI_IFACE" ]; then
-        printf '    { wifi_essid,     " %%s ",          "%s" },\n' "$WIFI_IFACE"
+        printf '    { wifi_essid,     "[WIFI %%s] ",   "%s" },\n' "$WIFI_IFACE"
     fi
     if [ "$BAT_NAME" != "n/a" ]; then
-        # FIX: el estado de la bateria necesita "%s" (antes se generaba "[%]" sin %s)
-        printf '    { battery_state,  "[%%s]",          "%s" },\n' "$BAT_NAME"
-        printf '    { battery_perc,   "BAT %%s%%%% ",     "%s" },\n' "$BAT_NAME"
+        printf '    { battery_perc,   "[BAT %%s%%%%] ",  "%s" },\n' "$BAT_NAME"
     fi
     cat <<'EOF'
-    { datetime,         "%s",            "%Y-%m-%d %I:%M %p" },
+    { datetime,       "%s",            "%H:%M %d/%m" },
 };
 EOF
 } | write_config config.h
 
 info "Compilando slstatus (como usuario; solo la instalacion usa sudo)..."
+make clean
+make
+sudo make install
+
+# ----------------------------------------------------------------
+# 4b. st (terminal) con la misma paleta y fuente que la terminal de dwl (foot)
+# ----------------------------------------------------------------
+# st no lee colores de Xresources: hay que compilarlo con su config.h.
+# La transparencia la pone picom (paso 6), igual que alpha=0.75 en foot.
+cd "$HOME"
+if [ ! -d st ]; then
+    info "Clonando st..."
+    git clone "$ST_REPO"
+fi
+cd st
+fix_owner
+
+# Puntos a pixeles para st (11 pt = 15 px)
+ST_PX=$(( (FONT_SIZE * 4 + 1) / 3 ))
+
+ST_COLORS_TMP=$(mktemp)
+cat > "$ST_COLORS_TMP" <<'EOF'
+static const char *colorname[] = {
+	/* 8 normal colors */
+	"#15161e", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#a9b1d6",
+
+	/* 8 bright colors */
+	"#414868", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#c0caf5",
+
+	[255] = 0,
+
+	/* more colors can be added after 255 to use with DefaultXX */
+	"#c0caf5", /* cursor */
+	"#1a1b26", /* reverse cursor */
+	"#c0caf5", /* default foreground colour */
+	"#1a1b26", /* default background colour */
+};
+EOF
+
+info "Escribiendo config.h de st (JetBrains Mono ${ST_PX}px, paleta Tokyo Night)..."
+ST_CFG_TMP=$(mktemp)
+# Fuente: reemplaza la linea 'static char *font'
+# Colores: reemplaza el bloque 'static const char *colorname[] = {...};'
+awk -v colors="$ST_COLORS_TMP" -v px="$ST_PX" '
+    /^static char \*font = / {
+        print "static char *font = \"JetBrainsMono Nerd Font:pixelsize=" px ":antialias=true:autohint=true\";"
+        next
+    }
+    /^static const char \*colorname\[\] = \{/ {
+        while ((getline line < colors) > 0) print line
+        close(colors)
+        skip = 1
+        next
+    }
+    skip && /^\};/ { skip = 0; next }
+    !skip { print }
+' config.def.h > "$ST_CFG_TMP"
+rm -f "$ST_COLORS_TMP"
+grep -q 'JetBrainsMono Nerd Font' "$ST_CFG_TMP" || { error "No pude escribir la fuente en st/config.h"; exit 1; }
+write_config config.h < "$ST_CFG_TMP"
+rm -f "$ST_CFG_TMP"
+
+info "Compilando st..."
 make clean
 make
 sudo make install
@@ -642,7 +706,7 @@ backend = "xrender";
 vsync = false;
 
 opacity-rule = [
-  "90:class_g = 'st-256color'"
+  "75:class_g = 'st-256color'"
 ];
 
 shadow = false;
@@ -670,14 +734,22 @@ info "Gestor de archivos: lf (Super+e). Discos y pendrives: udisksctl mount -b /
 # 8. Wallpaper
 # ----------------------------------------------------------------
 mkdir -p "$WALLPAPER_DIR"
+WALLPAPER_MARK="$WALLPAPER_DIR/.wallpaper-instalador"
 if [ ! -f "$WALLPAPER_PATH" ]; then
-    info "Descargando wallpaper..."
-    wget -q -U "Mozilla/5.0" --referer="https://wallpapercave.com/" \
-        -O "$WALLPAPER_PATH" "$WALLPAPER_URL" || true
-    if ! file "$WALLPAPER_PATH" 2>/dev/null | grep -qi image; then
-        warn "No se pudo descargar un wallpaper valido; se omite."
+    info "Descargando wallpaper por defecto..."
+    if curl -fsSL --max-time 60 \
+        -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+        -e "https://wallpaperaccess.com/" \
+        -o "$WALLPAPER_PATH.tmp" "$WALLPAPER_URL" 2>/dev/null \
+        && [ -s "$WALLPAPER_PATH.tmp" ] \
+        && file -b "$WALLPAPER_PATH.tmp" | grep -qi image; then
+        mv "$WALLPAPER_PATH.tmp" "$WALLPAPER_PATH"
+        touch "$WALLPAPER_MARK"   # marca: lo puso el instalador (se puede reemplazar)
+        info "Wallpaper guardado en $WALLPAPER_PATH"
+    else
+        rm -f "$WALLPAPER_PATH.tmp"
+        warn "No se pudo descargar el wallpaper; se omite."
         warn "Copia tu propia imagen a $WALLPAPER_PATH y se usara al iniciar sesion."
-        rm -f "$WALLPAPER_PATH"
     fi
 fi
 
@@ -1041,7 +1113,7 @@ write_config "$HOME/Atajos.txt" <<'ATAJOS_EOF'
   Super+w...................... ocultar o mostrar la barra
 
   La barra la dibuja el propio dwm y su contenido lo genera slstatus. Muestra
-  CPU, RAM, la red wifi, la bateria (si hay) y la fecha.
+  CPU (carga), RAM, volumen, la red wifi y la bateria (si hay), y la hora.
 
   Se cambia editando ~/slstatus/config.h y recompilando:
     cd ~/slstatus && sudo make clean install
