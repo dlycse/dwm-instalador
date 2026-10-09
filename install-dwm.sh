@@ -1,11 +1,30 @@
 #!/bin/sh
 # ============================================================
-# install-dwm v0.9.0 — X11 con dwm + slstatus + st (Void + Arch)
+# install-dwm v1.0 — X11 con dwm + slstatus + st (Void + Arch)
 # ------------------------------------------------------------
+# Orden de ejecucion:
+#   1) sistema y distro     2) configuracion (teclado, zona horaria)
+#   3) paquetes             4) servicios base
+#   5) dwm + parche vanitygaps   6) slstatus   7) st (terminal)
+#   8) polkit (discos sin contrasena)   9) picom, fondo, tema,
+#      lf, atajos          10) sesion dwm    11) kernel (solo Void)
+#  12) >>> INICIO DE SESION (lightdm) <<<  <- ULTIMO BLOQUE
+#
+# CAMBIOS RESPECTO A v0.8:
+#  - Soporta Void Linux (runit) y Arch Linux (systemd).
+#  - Estetica del instalador de dwl (banner, cajas y mensajes).
+#  - Paleta Tokyo Night, fuente y fondo iguales a dwl.
+#  - st se compila con esa paleta (ya no viene de los repos).
+#  - Barra con [CPU] [RAM] [VOL] y hora, como en la captura.
+#  - El inicio de sesion va al final; no se tocan servicios de
+#    pantalla a mitad de la instalacion.
+#  - Se usa 'sudo pacman -Syu' en Arch para evitar actualizaciones
+#    parciales (que rompen las librerias).
+# ============================================================
 set +e
 
-VERSION="0.9.0"
-BUILD="rev.1 (Void + Arch)"
+VERSION="1.0"
+BUILD="estable (Void + Arch)"
 
 # Archivo de distro (se puede cambiar para pruebas)
 OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
@@ -423,10 +442,10 @@ cat > "$CFG_TMP" <<'CFG_EOF'
 
 /* appearance */
 static const unsigned int borderpx  = 2;
-static const unsigned int gappih    = 10;
-static const unsigned int gappiv    = 10;
-static const unsigned int gappoh    = 10;
-static const unsigned int gappov    = 10;
+static const unsigned int gappih    = 4;
+static const unsigned int gappiv    = 4;
+static const unsigned int gappoh    = 4;
+static const unsigned int gappov    = 4;
 static       int smartgaps          = 0;
 static const unsigned int snap      = 32;
 static const int showbar            = 1;
@@ -978,7 +997,7 @@ write_config "$REAL_HOME/Atajos.txt" <<'ATAJOS_EOF'
   Super+Ctrl+0................. activar o desactivar gaps
   Super+Ctrl+Shift+0........... restablecer los gaps a su valor inicial
 
-  Los valores iniciales (10 px) se cambian en ~/dwm/config.h: gappih, gappiv,
+  Los valores iniciales (4 px) se cambian en ~/dwm/config.h: gappih, gappiv,
   gappoh y gappov.
 
 ------------------------------------------------------------------------------
@@ -1035,7 +1054,7 @@ write_config "$REAL_HOME/Atajos.txt" <<'ATAJOS_EOF'
   lsblk -f..................... ver los discos y sus particiones
   udisksctl mount -b /dev/sdb1  montar una particion concreta
   udisksctl unmount -b /dev/sdb1  desmontarla
-  udisksctl list............... dispositivos que reconoce udisks2
+  udisksctl status............. resumen de discos que reconoce udisks2
 
     Nota: Hace falta cerrar sesion (o reiniciar) despues de instalar para que
     el grupo wheel surta efecto.
