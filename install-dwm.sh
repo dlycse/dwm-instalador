@@ -1192,4 +1192,5 @@ if [ -n "$KERNEL_NUEVO" ]; then
 fi
 line
 ok "Instalacion v$VERSION completada. Realiza ${B}sudo reboot${R} para cargar todo sin problema."
+rm -rf ~/dwm-instalador
 exit 0
