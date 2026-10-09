@@ -2,25 +2,6 @@
 # ============================================================
 # install-dwm v1.0 — X11 con dwm + slstatus + st (Void + Arch)
 # ------------------------------------------------------------
-# Orden de ejecucion:
-#   1) sistema y distro     2) configuracion (teclado, zona horaria)
-#   3) paquetes             4) servicios base
-#   5) dwm + parche vanitygaps   6) slstatus   7) st (terminal)
-#   8) polkit (discos sin contrasena)   9) picom, fondo, tema,
-#      lf, atajos          10) sesion dwm    11) kernel (solo Void)
-#  12) >>> INICIO DE SESION (lightdm) <<<  <- ULTIMO BLOQUE
-#
-# CAMBIOS RESPECTO A v0.8:
-#  - Soporta Void Linux (runit) y Arch Linux (systemd).
-#  - Estetica del instalador de dwl (banner, cajas y mensajes).
-#  - Paleta Tokyo Night, fuente y fondo iguales a dwl.
-#  - st se compila con esa paleta (ya no viene de los repos).
-#  - Barra con [CPU] [RAM] [VOL] y hora, como en la captura.
-#  - El inicio de sesion va al final; no se tocan servicios de
-#    pantalla a mitad de la instalacion.
-#  - Se usa 'sudo pacman -Syu' en Arch para evitar actualizaciones
-#    parciales (que rompen las librerias).
-# ============================================================
 set +e
 
 VERSION="1.0"
