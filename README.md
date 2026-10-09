@@ -2,11 +2,11 @@
 
 Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya preconfigurado para **Void Linux** y **Arch Linux**.
 
-> ### ⚠️ VERSIÓN 0.9.0 (BETA) — puede contener errores
+> ### VERSIÓN 1.0
 > Soporta **Void Linux** (runit) y **Arch Linux** (systemd). Se comprobó con simulaciones de `sudo`, `xbps` y `pacman`; falta probarlo en un equipo real.
 > Se recomiendan **10 GB libres** en `/`. El instalador avisa si hay menos y te pregunta si continúa.
 
-<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/0ed290dc-92d8-49a1-8e80-a014ae39f786" />
+<img width="2880" height="2160" alt="Captura del escritorio dwm con la barra slstatus" src="https://github.com/user-attachments/assets/daacd093-3cd8-4330-ad5d-e77d1c1ad982" />
 
 ---
 
