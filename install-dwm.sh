@@ -1,11 +1,12 @@
 #!/bin/sh
 # ============================================================
-# install-dwm v1.0 — X11 con dwm + slstatus + st (Void + Arch)
+# install-dwm v1.01 — X11 con dwm + slstatus + st
+#   Void, Arch, Fedora/Nobara (dnf + systemd) y Debian (apt + systemd)
 # ------------------------------------------------------------
 set +e
 
-VERSION="1.0"
-BUILD="estable (Void + Arch)"
+VERSION="1.01"
+BUILD="prueba (Void + Arch + Fedora/Nobara + Debian)"
 
 # Archivo de distro (se puede cambiar para pruebas)
 OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
@@ -80,8 +81,8 @@ set_kv(){
   fi
 }
 
-# enable_svc NOMBRE_VOID UNIDAD_ARCH
-# Void (runit): enlaza /etc/sv/NOMBRE en /var/service. Arch (systemd): systemctl enable.
+# enable_svc NOMBRE_VOID UNIDAD_SYSTEMD
+# Void (runit): enlaza /etc/sv/NOMBRE en /var/service. systemd (Arch, Fedora, Debian): systemctl enable.
 # Un argumento vacio significa "no aplica en esta distro".
 enable_svc(){
   if [ "$FAMILIA" = "void" ]; then
@@ -101,6 +102,23 @@ enable_svc(){
       warn "No se pudo habilitar $2"
     fi
   fi
+}
+
+# Instala una lista de paquetes con el gestor de la distro (usa FAMILIA).
+install_lote(){
+  case "$FAMILIA" in
+    void)   sudo xbps-install -Sy "$@" ;;
+    arch)   sudo pacman -S --needed --noconfirm "$@" ;;
+    fedora) sudo dnf install -y --skip-unavailable "$@" ;;
+    debian) sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$@" ;;
+  esac
+}
+
+# Un paquete es "disponible" si tiene candidato instalable (solo Debian; en Void y Arch
+# se comprueba antes con xbps-query / pacman).
+apt_disponible(){
+  _c="$(apt-cache policy "$1" 2>/dev/null | awk '/Candidat|Candidate/{print $2; exit}')"
+  [ -n "$_c" ] && [ "$_c" != "(ninguno)" ] && [ "$_c" != "(none)" ]
 }
 
 # ---------- Valores por defecto (se pueden cambiar con variables de entorno) ----------
@@ -146,14 +164,23 @@ FAMILIA="unknown"
 case "${ID:-unknown}" in
   void) FAMILIA="void" ;;
   arch|manjaro|endeavouros|garuda|cachyos|arcolinux|parabola) FAMILIA="arch" ;;
-  *) case "${ID_LIKE:-}" in *arch*) FAMILIA="arch" ;; *void*) FAMILIA="void" ;; esac ;;
+  fedora|nobara) FAMILIA="fedora" ;;
+  debian) FAMILIA="debian" ;;   # solo Debian: Ubuntu y Mint no estan probados
+  *) case "${ID_LIKE:-}" in *arch*) FAMILIA="arch" ;; *void*) FAMILIA="void" ;; *fedora*) FAMILIA="fedora" ;; esac ;;
 esac
-[ "$FAMILIA" = "unknown" ] && err "Solo compatible con Void Linux y Arch Linux (detectado: ${ID:-desconocido})."
+[ "$FAMILIA" = "unknown" ] && err "Solo compatible con Void, Arch, Fedora/Nobara y Debian (detectado: ${ID:-desconocido})."
+
+# Grupo de administradores: wheel en Void/Arch/Fedora, sudo en Debian.
+if [ "$FAMILIA" = "debian" ]; then ADMIN_GROUP="sudo"; else ADMIN_GROUP="wheel"; fi
+
 if [ "$FAMILIA" = "arch" ] && [ ! -d /run/systemd/system ]; then
   err "Arch sin systemd (p. ej. Artix con OpenRC) no esta soportado por este script."
 fi
 if [ "$FAMILIA" = "void" ] && [ ! -d /etc/sv ]; then
   err "Void sin runit (/etc/sv) no esta soportado por este script."
+fi
+if [ "$FAMILIA" = "fedora" ] || [ "$FAMILIA" = "debian" ]; then
+  [ -d /run/systemd/system ] || err "Esta distro debe arrancar con systemd (no se detecto)."
 fi
 ok "Distro: ${PRETTY_NAME:-${ID:-desconocida}} (familia: $FAMILIA, init: $([ "$FAMILIA" = void ] && echo runit || echo systemd))"
 
@@ -263,100 +290,202 @@ else
 fi
 
 # ==================== PAQUETES ====================
-# Lista base comun (los nombres de Void y Arch se separan abajo).
-if [ "$FAMILIA" = "void" ]; then
-  hdr "PAQUETES - VOID LINUX"
-  info "Sincronizando indice de paquetes..."
-  sudo xbps-install -S >/dev/null 2>&1 || warn "No se pudo sincronizar (continuo con el indice local)"
+# Cada distro tiene su propia lista; los nombres cambian entre distros.
+case "$FAMILIA" in
 
-  PKGS_VOID="
-    base-devel git curl wget nano file ncurses
-    libX11-devel libXft-devel libXinerama-devel freetype-devel fontconfig-devel
-    xorg xinit dbus
-    dmenu slock dunst picom feh
-    alsa-utils brightnessctl scrot util-linux xdg-utils
-    nerd-fonts lf mpv zathura zathura-pdf-poppler
-    fastfetch btop cowsay chrony firefox
-    lightdm lightdm-gtk3-greeter
-    udisks2 polkit elogind polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
-  "
-  PKG_OK=""; PKG_NO=""
-  for p in $PKGS_VOID; do
-    if xbps-query -R "$p" >/dev/null 2>&1; then PKG_OK="$PKG_OK $p"; else PKG_NO="$PKG_NO $p"; fi
-  done
-  [ -n "$PKG_NO" ] && warn "No estan en los repos, se omiten:$PKG_NO"
+  void)
+    hdr "PAQUETES - VOID LINUX"
+    info "Sincronizando indice de paquetes..."
+    sudo xbps-install -S >/dev/null 2>&1 || warn "No se pudo sincronizar (continuo con el indice local)"
 
-  info "Instalando paquetes (lote)..."
-  # shellcheck disable=SC2086
-  if sudo xbps-install -Sy $PKG_OK; then
-    ok "Paquetes instalados"
-  else
-    warn "El lote fallo: instalo uno a uno para no perder todo"
-    for p in $PKG_OK; do
-      sudo xbps-install -Sy "$p" >/dev/null 2>&1 || warn "No se pudo instalar: $p"
+    PKGS_VOID="
+      base-devel git curl wget nano file ncurses
+      libX11-devel libXft-devel libXinerama-devel freetype-devel fontconfig-devel
+      xorg xinit dbus
+      dmenu slock dunst picom feh
+      alsa-utils brightnessctl scrot util-linux xdg-utils
+      nerd-fonts lf mpv zathura zathura-pdf-poppler
+      fastfetch btop cowsay chrony firefox
+      lightdm lightdm-gtk3-greeter
+      udisks2 polkit elogind polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
+    "
+    PKG_OK=""; PKG_NO=""
+    for p in $PKGS_VOID; do
+      if xbps-query -R "$p" >/dev/null 2>&1; then PKG_OK="$PKG_OK $p"; else PKG_NO="$PKG_NO $p"; fi
     done
-  fi
+    [ -n "$PKG_NO" ] && warn "No estan en los repos, se omiten:$PKG_NO"
 
-else
-  hdr "PAQUETES - ARCH LINUX"
-  info "Sincronizando indice de paquetes..."
-  sudo pacman -Sy --noconfirm >/dev/null 2>&1 || warn "No se pudo sincronizar la base de datos de pacman"
-
-  PKGS_ARCH="
-    base-devel git curl wget nano file ncurses
-    libx11 libxft libxinerama freetype2 fontconfig
-    xorg-server xorg-xinit dbus
-    dmenu slock dunst picom feh
-    alsa-utils brightnessctl scrot util-linux xdg-utils
-    ttf-jetbrains-mono-nerd lf mpv zathura zathura-pdf-poppler
-    fastfetch btop cowsay chrony firefox
-    lightdm lightdm-gtk-greeter
-    udisks2 polkit polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
-  "
-  PKG_OK=""; PKG_NO=""
-  for p in $PKGS_ARCH; do
-    if pacman -Si "$p" >/dev/null 2>&1 || pacman -Q "$p" >/dev/null 2>&1; then
-      PKG_OK="$PKG_OK $p"
+    info "Instalando paquetes (lote)..."
+    # shellcheck disable=SC2086
+    if install_lote $PKG_OK; then
+      ok "Paquetes instalados"
     else
-      PKG_NO="$PKG_NO $p"
+      warn "El lote fallo: instalo uno a uno para no perder todo"
+      for p in $PKG_OK; do
+        install_lote "$p" >/dev/null 2>&1 || warn "No se pudo instalar: $p"
+      done
     fi
-  done
-  [ -n "$PKG_NO" ] && warn "No estan en los repos oficiales, se intentara por AUR:$PKG_NO"
+    ;;
 
-  info "Instalando paquetes (lote)..."
-  # shellcheck disable=SC2086
-  if sudo pacman -Syu --needed --noconfirm $PKG_OK; then
-    ok "Paquetes instalados"
-  else
-    warn "El lote fallo: instalo uno a uno para no perder todo"
-    for p in $PKG_OK; do
-      sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 || warn "No se pudo instalar: $p"
-    done
-  fi
+  arch)
+    hdr "PAQUETES - ARCH LINUX"
+    info "Sincronizando indice de paquetes..."
+    sudo pacman -Sy --noconfirm >/dev/null 2>&1 || warn "No se pudo sincronizar la base de datos de pacman"
 
-  # Lo que no esta en los repos oficiales: se busca con un helper de AUR si hay uno
-  if [ -n "$PKG_NO" ]; then
-    for h in yay paru; do
-      if command -v "$h" >/dev/null 2>&1; then
-        info "Intentando por AUR con $h:$PKG_NO"
-        # shellcheck disable=SC2086
-        "$h" -S --needed --noconfirm $PKG_NO >/dev/null 2>&1 || warn "El AUR fallo para:$PKG_NO"
-        break
+    PKGS_ARCH="
+      base-devel git curl wget nano file ncurses
+      libx11 libxft libxinerama freetype2 fontconfig
+      xorg-server xorg-xinit dbus
+      dmenu slock dunst picom feh
+      alsa-utils brightnessctl scrot util-linux xdg-utils
+      ttf-jetbrains-mono-nerd lf mpv zathura zathura-pdf-poppler
+      fastfetch btop cowsay chrony firefox
+      lightdm lightdm-gtk-greeter
+      udisks2 polkit polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
+    "
+    PKG_OK=""; PKG_NO=""
+    for p in $PKGS_ARCH; do
+      if pacman -Si "$p" >/dev/null 2>&1 || pacman -Q "$p" >/dev/null 2>&1; then
+        PKG_OK="$PKG_OK $p"
+      else
+        PKG_NO="$PKG_NO $p"
       fi
     done
-    if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
-      warn "No hay helper de AUR (yay/paru): instala a mano lo que falte de la lista de arriba"
+    [ -n "$PKG_NO" ] && warn "No estan en los repos oficiales, se intentara por AUR:$PKG_NO"
+
+    info "Instalando paquetes (lote)..."
+    # shellcheck disable=SC2086
+    if sudo pacman -Syu --needed --noconfirm $PKG_OK; then
+      ok "Paquetes instalados"
+    else
+      warn "El lote fallo: instalo uno a uno para no perder todo"
+      for p in $PKG_OK; do
+        sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1 || warn "No se pudo instalar: $p"
+      done
+    fi
+
+    # Lo que no esta en los repos oficiales: se busca con un helper de AUR si hay uno
+    if [ -n "$PKG_NO" ]; then
+      for h in yay paru; do
+        if command -v "$h" >/dev/null 2>&1; then
+          info "Intentando por AUR con $h:$PKG_NO"
+          # shellcheck disable=SC2086
+          "$h" -S --needed --noconfirm $PKG_NO >/dev/null 2>&1 || warn "El AUR fallo para:$PKG_NO"
+          break
+        fi
+      done
+      if ! command -v yay >/dev/null 2>&1 && ! command -v paru >/dev/null 2>&1; then
+        warn "No hay helper de AUR (yay/paru): instala a mano lo que falte de la lista de arriba"
+      fi
+    fi
+    ;;
+
+  fedora)
+    # Fedora y Nobara (dnf). dwm no esta empaquetado: se compila desde fuente.
+    hdr "PAQUETES - FEDORA / NOBARA"
+    info "Actualizando el sistema y el indice de paquetes..."
+    sudo dnf -y makecache >/dev/null 2>&1 || warn "No se pudo actualizar el indice de dnf (continuo)"
+
+    # Nombres de Fedora: lightdm-gtk (greeter), libX11-devel (cabeceras para compilar),
+    # xorg-x11-server-Xorg/xinit (X11), chronyd (servicio), firefox.
+    # Nerd Font: no esta en Fedora; se descarga en install_nerd_font (mas abajo).
+    PKGS_FEDORA="
+      @development-tools git curl wget nano file ncurses
+      libX11-devel libXft-devel libXinerama-devel freetype-devel fontconfig-devel
+      xorg-x11-server-Xorg xorg-x11-xinit dbus-x11
+      dmenu slock dunst picom feh
+      alsa-utils brightnessctl scrot util-linux xdg-utils
+      lf mpv zathura zathura-pdf-poppler
+      fastfetch btop cowsay chrony firefox
+      lightdm lightdm-gtk
+      udisks2 polkit polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
+    "
+    info "Instalando paquetes (lote)..."
+    # shellcheck disable=SC2086
+    if install_lote $PKGS_FEDORA; then
+      ok "Paquetes instalados"
+    else
+      warn "dnf reporto errores (revisa la salida de arriba); el resto se instalo"
+    fi
+    ;;
+
+  debian)
+    # Debian (apt). Solo Debian: Ubuntu y Mint no estan probados.
+    hdr "PAQUETES - DEBIAN"
+    info "Sincronizando indice de paquetes..."
+    sudo DEBIAN_FRONTEND=noninteractive apt-get update >/dev/null 2>&1 || warn "No se pudo sincronizar apt"
+
+    # Nombres de Debian: build-essential, libx11-dev..., xserver-xorg (X11),
+    # policykit-1-gnome (agente polkit), firefox-esr (firefox en Debian es esr),
+    # fonts-jetbrains-mono (la Nerd Font se descarga en install_nerd_font).
+    PKGS_DEBIAN="
+      build-essential git curl wget nano file
+      libx11-dev libxft-dev libxinerama-dev libfreetype-dev libfontconfig-dev
+      xserver-xorg xinit dbus-x11
+      dmenu slock dunst picom feh
+      alsa-utils brightnessctl scrot util-linux xdg-utils
+      fonts-jetbrains-mono lf mpv zathura zathura-pdf-poppler
+      fastfetch btop cowsay chrony firefox-esr
+      lightdm lightdm-gtk-greeter
+      udisks2 policykit-1-gnome gvfs gvfs-backends ntfs-3g exfatprogs
+    "
+    PKG_OK=""; PKG_NO=""
+    for p in $PKGS_DEBIAN; do
+      if apt_disponible "$p"; then PKG_OK="$PKG_OK $p"; else PKG_NO="$PKG_NO $p"; fi
+    done
+    [ -n "$PKG_NO" ] && warn "No estan en los repos de tu version de Debian, se omiten:$PKG_NO"
+
+    info "Instalando paquetes (lote)..."
+    # shellcheck disable=SC2086
+    if install_lote $PKG_OK; then
+      ok "Paquetes instalados"
+    else
+      warn "El lote fallo: instalo uno a uno para no perder todo"
+      for p in $PKG_OK; do
+        install_lote "$p" >/dev/null 2>&1 || warn "No se pudo instalar: $p"
+      done
+    fi
+    ;;
+esac
+
+# Nerd Font para Fedora y Debian: ninguna la empaqueta; se baja la release oficial
+# de Nerd Fonts a ~/.local/share/fonts (sin tocarla si ya existe).
+install_nerd_font(){
+  case "$FAMILIA" in fedora|debian) ;; *) return 0 ;; esac
+  NF_DIR="$REAL_HOME/.local/share/fonts/JetBrainsMonoNerd"
+  if fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd"; then
+    ok "JetBrainsMono Nerd Font ya instalada"
+    return 0
+  fi
+  info "Descargando JetBrainsMono Nerd Font..."
+  mkdir -p "$NF_DIR"
+  if command -v unzip >/dev/null 2>&1 || install_lote unzip >/dev/null 2>&1; then
+    if curl -fsSL --max-time 180 -o /tmp/JetBrainsMono.zip \
+         "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" \
+       && unzip -oq /tmp/JetBrainsMono.zip -d "$NF_DIR"; then
+      rm -f /tmp/JetBrainsMono.zip
+      fc-cache -f >/dev/null 2>&1
+      ok "JetBrainsMono Nerd Font instalada en $NF_DIR"
+      return 0
     fi
   fi
-fi
+  rm -f /tmp/JetBrainsMono.zip
+  warn "No pude instalar la Nerd Font: la barra usara una fuente de respaldo"
+}
+install_nerd_font
+
+# En Arch y Void la Nerd Font ya viene de los repos (ttf-jetbrains-mono-nerd / nerd-fonts).
+# Fedora/Debian: ver install_nerd_font arriba.
 
 # ==================== SERVICIOS BASE ====================
 hdr "SERVICIOS BASE"
+# Nombre del servicio de chrony: "chronyd" en Void, Arch y Fedora; "chrony" en Debian.
+CHRONY_UNIT="chronyd"; [ "$FAMILIA" = "debian" ] && CHRONY_UNIT="chrony"
 enable_svc dbus dbus
 enable_svc polkitd polkit
-enable_svc udevd ""           # Arch: systemd-udevd ya corre solo
-enable_svc elogind ""         # Arch: systemd-logind va incluido en systemd
-enable_svc chronyd chronyd
+enable_svc udevd ""           # Arch/Fedora/Debian: systemd-udevd ya corre solo
+enable_svc elogind ""         # Arch/Fedora/Debian: systemd-logind va incluido en systemd
+enable_svc chronyd "$CHRONY_UNIT"
 
 if [ "$FAMILIA" = "void" ] && [ -e /var/service/acpid ]; then
   warn "elogind y acpid gestionan los mismos eventos ACPI; deshabilito acpid."
@@ -366,6 +495,8 @@ fi
 # Teclado de consola
 if [ "$FAMILIA" = "void" ]; then
   set_kv /etc/rc.conf KEYMAP "$KB_CONSOLE"
+elif [ "$FAMILIA" = "debian" ]; then
+  set_kv /etc/default/keyboard XKBLAYOUT "$KB_LAYOUT"   # Debian usa /etc/default/keyboard
 else
   set_kv /etc/vconsole.conf KEYMAP "$KB_CONSOLE"
 fi
@@ -385,8 +516,8 @@ command -v setxkbmap >/dev/null 2>&1 && [ -n "$DISPLAY" ] && setxkbmap "$KB_LAYO
 ok "Teclado de Xorg: $KB_LAYOUT"
 
 # ---------- Grupos del usuario (regla de polkit y hardware) ----------
-sudo usermod -aG wheel,video,input "$REAL_USER"
-ok "Grupos para $REAL_USER: wheel, video, input"
+sudo usermod -aG "$ADMIN_GROUP",video,input "$REAL_USER"
+ok "Grupos para $REAL_USER: $ADMIN_GROUP, video, input"
 warn "Los grupos se aplican al iniciar una sesion nueva (cierra sesion o reinicia)."
 
 # ==================== DWM ====================
@@ -670,13 +801,12 @@ ok "st instalado en /usr/local/bin/st"
 
 # ==================== POLKIT (DISCOS SIN CONTRASENA) ====================
 hdr "POLKIT - DISCOS Y PENDRIVES"
-# Regla para el grupo wheel: montar, desmontar y expulsar con udisks2 sin contrasena.
-# Se lee en orden: el 49 gana a las reglas por defecto (50). polkit recarga sola.
+# Regla para el grupo de administradores (wheel o sudo): montar, desmontar y expulsar
+# con udisks2 sin contrasena. Se lee en orden: el 49 gana a las reglas por defecto (50).
 sudo mkdir -p /etc/polkit-1/rules.d
 sudo tee /etc/polkit-1/rules.d/49-udisks2-wheel.rules >/dev/null <<'POLKIT_EOF'
-// Permitir a los usuarios del grupo "wheel" montar/desmontar discos y pendrives
-// con udisks2 SIN pedir contrasena. Funciona igual en Void (polkit + elogind)
-// y en Arch (polkit + systemd-logind).
+// Permitir a los usuarios de los grupos "wheel" (Void, Arch, Fedora) o "sudo" (Debian)
+// montar/desmontar discos y pendrives con udisks2 SIN pedir contrasena.
 polkit.addRule(function(action, subject) {
     var permitidos = [
         "org.freedesktop.udisks2.filesystem-mount",
@@ -691,7 +821,8 @@ polkit.addRule(function(action, subject) {
         "org.freedesktop.udisks2.encrypted-unlock-other-seat",
         "org.freedesktop.udisks2.modify-device"
     ];
-    if (permitidos.indexOf(action.id) >= 0 && subject.isInGroup("wheel")) {
+    if (permitidos.indexOf(action.id) >= 0 &&
+        (subject.isInGroup("wheel") || subject.isInGroup("sudo"))) {
         return polkit.Result.YES;
     }
 });
@@ -779,10 +910,12 @@ slstatus &
 EOF
     cat <<'AUTO_EOF'
 # Agente de autenticacion polkit (para las acciones que piden contrasena)
+# Nombres de Void/Arch/Fedora y de Debian (policykit-1-gnome).
 for AGENTE in \
     /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 \
     /usr/lib64/polkit-gnome/polkit-gnome-authentication-agent-1 \
-    /usr/libexec/polkit-gnome-authentication-agent-1; do
+    /usr/libexec/polkit-gnome-authentication-agent-1 \
+    /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1; do
     if [ -x "$AGENTE" ]; then "$AGENTE" & break; fi
 done
 AUTO_EOF
@@ -1026,7 +1159,7 @@ write_config "$REAL_HOME/Atajos.txt" <<'ATAJOS_EOF'
 ------------------------------------------------------------------------------
 
   El instalador deja configurado udisks2 + polkit para montar discos sin
-  contrasena (si tu usuario esta en el grupo wheel).
+  contrasena (si tu usuario esta en el grupo wheel o sudo).
 
   Donde quedan montados:
   /run/media/TU-USUARIO/....... pendrives y tarjetas (los monta udisks2)
@@ -1038,7 +1171,7 @@ write_config "$REAL_HOME/Atajos.txt" <<'ATAJOS_EOF'
   udisksctl status............. resumen de discos que reconoce udisks2
 
     Nota: Hace falta cerrar sesion (o reiniciar) despues de instalar para que
-    el grupo wheel surta efecto.
+    el grupo surta efecto.
 
 ------------------------------------------------------------------------------
  CAMBIAR ESTOS ATAJOS
@@ -1109,7 +1242,7 @@ if [ "$FAMILIA" = "void" ]; then
     ok "Kernel sin cambios"
   fi
 else
-  ok "En Arch el kernel se actualiza con: sudo pacman -Syu (ya se hizo arriba)"
+  ok "En esta distro el kernel se actualiza con el gestor de paquetes (ya se hizo arriba)"
 fi
 
 # ==================== INICIO DE SESION (ULTIMO BLOQUE) ====================
@@ -1175,11 +1308,11 @@ echo " Elige la sesion 'dwm' e inicia sesion con tu usuario."
 echo
 echo " Si NO aparece el login:"
 if [ "$FAMILIA" = "void" ]; then
-  echo "   Void:  sudo sv status lightdm"
-  echo "          cat /var/log/lightdm/lightdm.log"
+  echo "   Void:   sudo sv status lightdm"
+  echo "           cat /var/log/lightdm/lightdm.log"
 else
-  echo "   Arch:  systemctl status lightdm"
-  echo "          journalctl -u lightdm -b"
+  echo "   systemd: systemctl status lightdm"
+  echo "            journalctl -u lightdm -b"
 fi
 echo " Tambien puedes entrar en una consola (Ctrl+Alt+F2) y escribir 'startx'."
 echo
