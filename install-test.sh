@@ -1,12 +1,12 @@
 #!/bin/sh
 # ============================================================
-# install-dwm v1.01 — X11 con dwm + slstatus + st
+# install-dwm v1.02 — X11 con dwm + slstatus + st
 #   Void, Arch, Fedora/Nobara (dnf + systemd) y Debian (apt + systemd)
 # ------------------------------------------------------------
 set +e
 
-VERSION="1.01"
-BUILD="prueba (Void + Arch + Fedora/Nobara + Debian)"
+VERSION="1.02"
+BUILD="prueba (Void + Arch + Fedora/Nobara + Debian · greetd + tuigreet)"
 
 # Archivo de distro (se puede cambiar para pruebas)
 OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
@@ -139,7 +139,7 @@ UA_NAVEGADOR="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 
 [ -t 1 ] && clear 2>/dev/null
 banner
-printf "  %sInicio de sesion (lightdm) al FINAL%s\n" "$DIM" "$R"
+printf "  %sInicio de sesion (greetd + tuigreet) al FINAL%s\n" "$DIM" "$R"
 
 # ---------- Usuario ----------
 if [ "$(id -u)" -eq 0 ]; then
@@ -289,6 +289,42 @@ else
   warn "No encontre la zona '$TZIN'; se deja la que ya tenias"
 fi
 
+# ---------- Gestor de sesion ya instalado (lightdm, gdm, sddm...) ----------
+# Igual que install-dwl: se pregunta si cambiar a greetd + tuigreet o conservar el que hay.
+# Por defecto (Enter) se deja el que hay.
+DM_FOUND=""
+for DM in lightdm gdm gdm3 sddm xdm lxdm; do
+  if [ -L "/var/service/$DM" ] || [ -f "/usr/lib/systemd/system/$DM.service" ] || command -v "$DM" >/dev/null 2>&1; then
+    DM_FOUND="$DM_FOUND $DM"
+  fi
+done
+DM_FOUND="${DM_FOUND# }"
+USE_GREETD=1
+GREETER_OK=1
+if [ "$FAMILIA" = "debian" ]; then
+  sudo DEBIAN_FRONTEND=noninteractive apt-get update >/dev/null 2>&1
+  apt_disponible tuigreet || GREETER_OK=0
+fi
+if [ "$GREETER_OK" = 0 ]; then
+  USE_GREETD=0
+  warn "tuigreet no esta en los repos de tu Debian: no se configura greetd."
+  if [ -n "$DM_FOUND" ]; then
+    ok "Se conserva tu gestor de sesion: $DM_FOUND. Elige dwm en su menu."
+  else
+    warn "No tienes gestor de sesion: instala lightdm (sudo apt install lightdm lightdm-gtk-greeter) para entrar a dwm."
+  fi
+elif [ -n "$DM_FOUND" ]; then
+  echo
+  warn "Ya tienes un gestor de sesion instalado: $DM_FOUND"
+  if confirm "Cambiarlo a greetd + tuigreet? (N = dejar $DM_FOUND y elegir dwm en su menu)"; then
+    USE_GREETD=1
+    info "Se cambiara a greetd + tuigreet (el otro gestor se desactiva, no se desinstala)."
+  else
+    USE_GREETD=0
+    ok "Se mantiene $DM_FOUND. greetd no se configura."
+  fi
+fi
+
 # ==================== PAQUETES ====================
 # Cada distro tiene su propia lista; los nombres cambian entre distros.
 case "$FAMILIA" in
@@ -306,7 +342,7 @@ case "$FAMILIA" in
       alsa-utils brightnessctl scrot util-linux xdg-utils
       nerd-fonts lf mpv zathura zathura-pdf-poppler
       fastfetch btop cowsay chrony firefox
-      lightdm lightdm-gtk3-greeter
+      greetd tuigreet
       udisks2 polkit elogind polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
     "
     PKG_OK=""; PKG_NO=""
@@ -340,7 +376,7 @@ case "$FAMILIA" in
       alsa-utils brightnessctl scrot util-linux xdg-utils
       ttf-jetbrains-mono-nerd lf mpv zathura zathura-pdf-poppler
       fastfetch btop cowsay chrony firefox
-      lightdm lightdm-gtk-greeter
+      greetd greetd-tuigreet
       udisks2 polkit polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
     "
     PKG_OK=""; PKG_NO=""
@@ -386,7 +422,7 @@ case "$FAMILIA" in
     info "Actualizando el sistema y el indice de paquetes..."
     sudo dnf -y makecache >/dev/null 2>&1 || warn "No se pudo actualizar el indice de dnf (continuo)"
 
-    # Nombres de Fedora: lightdm-gtk (greeter), libX11-devel (cabeceras para compilar),
+    # Nombres de Fedora: libX11-devel (cabeceras para compilar),
     # xorg-x11-server-Xorg/xinit (X11), chronyd (servicio), firefox.
     # Nerd Font: no esta en Fedora; se descarga en install_nerd_font (mas abajo).
     PKGS_FEDORA="
@@ -397,7 +433,7 @@ case "$FAMILIA" in
       alsa-utils brightnessctl scrot util-linux xdg-utils
       lf mpv zathura zathura-pdf-poppler
       fastfetch btop cowsay chrony firefox
-      lightdm lightdm-gtk
+      greetd greetd-selinux tuigreet
       udisks2 polkit polkit-gnome gvfs gvfs-mtp ntfs-3g exfatprogs
     "
     info "Instalando paquetes (lote)..."
@@ -426,7 +462,7 @@ case "$FAMILIA" in
       alsa-utils brightnessctl scrot util-linux xdg-utils
       fonts-jetbrains-mono lf mpv zathura zathura-pdf-poppler
       fastfetch btop cowsay chrony firefox-esr
-      lightdm lightdm-gtk-greeter
+      greetd tuigreet
       udisks2 policykit-1-gnome gvfs gvfs-backends ntfs-3g exfatprogs
     "
     PKG_OK=""; PKG_NO=""
@@ -929,7 +965,7 @@ fi
 # ---------- Wrapper de sesion (dbus-run-session) ----------
 sudo tee /usr/local/bin/dwm-session >/dev/null <<'SESSION_EOF'
 #!/bin/sh
-# Sesion dwm: la usan lightdm (desde /usr/share/xsessions/dwm.desktop) y startx.
+# Sesion dwm: la usan greetd (via dwm-startx), otros gestores (dwm.desktop) y startx.
 # Garantiza XDG_RUNTIME_DIR y un bus de sesion D-Bus; dentro corre autostart y dwm.
 
 if [ -z "$XDG_RUNTIME_DIR" ]; then
@@ -1245,77 +1281,303 @@ else
   ok "En esta distro el kernel se actualiza con el gestor de paquetes (ya se hizo arriba)"
 fi
 
-# ==================== INICIO DE SESION (ULTIMO BLOQUE) ====================
+# ==================== INICIO DE SESION (greetd + tuigreet) ====================
+# Debe quedar AL FINAL: usa dwm-session, dwm-startx y dwm.desktop, que ya existen aqui.
 hdr "INICIO DE SESION"
-printf "  %slightdm · bloque final v%s%s\n" "$DIM" "$VERSION" "$R"
+printf "  %sgreetd / tuigreet · bloque final v%s%s\n" "$DIM" "$VERSION" "$R"
 
-# --- 0) La sesion tiene que existir antes de activar el greeter ---
+# Ejecuta un comando como root (sin timeout, a diferencia de install-dwl)
+srun(){ sudo "$@"; }
+
+# --- 0) Comprobaciones previas: la sesion tiene que existir YA ---
 for f in /usr/local/bin/dwm-session /usr/share/xsessions/dwm.desktop; do
-  [ -f "$f" ] || err "Falta $f: no se activa lightdm."
+  [ -f "$f" ] || err "Falta $f: el bloque de inicio de sesion no puede continuar."
 done
-ok "Sesion dwm verificada"
+ok "Sesion dwm verificada antes de tocar greetd"
 
-# --- 1) Quitar otros gestores de pantalla (no se desinstalan) ---
-for DM in gdm sddm lxdm xdm ly greetd; do
-  if [ "$FAMILIA" = "void" ]; then
-    if [ -L "/var/service/$DM" ]; then
-      sudo rm -f "/var/service/$DM"
-      warn "$DM desactivado (no desinstalado)"
-    fi
-  else
-    if systemctl is-enabled "$DM.service" >/dev/null 2>&1; then
-      sudo systemctl disable "$DM.service" >/dev/null 2>&1
-      warn "$DM desactivado (no desinstalado)"
-    fi
-  fi
-done
+# --- 0b) Wrapper X11 para greetd ---
+# greetd NO levanta un servidor X. dwm es X11, asi que tuigreet lanza este wrapper,
+# que usa startx (xinit) para arrancar Xorg y dentro corre dwm-session.
+sudo tee /usr/local/bin/dwm-startx >/dev/null <<'SX_EOF'
+#!/bin/sh
+# Lanza dwm (X11) desde greetd/tuigreet: startx levanta Xorg y ejecuta dwm-session.
+exec startx /usr/local/bin/dwm-session -- "vt${XDG_VTNR:-1}"
+SX_EOF
+sudo chmod 0755 /usr/local/bin/dwm-startx
+command -v startx >/dev/null 2>&1 || warn "No hay 'startx' (paquete xinit): dwm no arrancara desde tuigreet"
+ok "Wrapper de inicio para greetd: /usr/local/bin/dwm-startx"
 
-# --- 2) Activar lightdm en el arranque ---
-if [ "$FAMILIA" = "void" ]; then
-  if [ -d /etc/sv/lightdm ]; then
-    sudo ln -sfn /etc/sv/lightdm /var/service/
-    ok "lightdm habilitado en runit"
-  else
-    err "No existe /etc/sv/lightdm: revisa que lightdm este instalado."
-  fi
+# --- 0c) FIX: detectar si tocar tty1 nos mataria la sesion ---
+# En tty1 tu shell ES el servicio agetty-tty1; pararlo = suicidio.
+ON_TTY1=0
+CUR_TTY="$(tty 2>/dev/null || true)"
+case "$CUR_TTY" in *tty1*) ON_TTY1=1 ;; esac
+IN_SESSION=0
+if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${XDG_SESSION_ID:-}" ]; then
+  IN_SESSION=1
+fi
+[ "$ON_TTY1" -eq 1 ] && IN_SESSION=1
+DEFERRED=0
+FINAL_ERROR=0
+if [ "$IN_SESSION" -eq 1 ]; then
+  info "Sesion detectada en ${CUR_TTY:-tty?}: greetd se activara en el REINICIO (modo seguro)."
 else
-  sudo systemctl enable lightdm.service >/dev/null 2>&1 || err "No se pudo habilitar lightdm.service"
-  ok "lightdm habilitado en systemd"
+  info "Sin sesion en tty1 (${CUR_TTY:-sin tty}): greetd se puede arrancar ahora mismo."
 fi
 
-# --- 3) Comprobacion ---
-if [ "$FAMILIA" = "void" ]; then
-  sleep 2
-  if sudo sv status lightdm 2>/dev/null | grep -q '^run:'; then
-    ok "lightdm esta CORRIENDO"
-  else
-    warn "lightdm no aparece corriendo: revisa 'sudo sv status lightdm' y /var/log/lightdm"
+if [ "$USE_GREETD" = 1 ]; then
+
+# --- 1) Quitar otros gestores de sesion (lightdm, gdm, sddm...) ---
+# Si hay sesion en marcha NO se paran: matarian la sesion. Se hace al reiniciar.
+for DM in lightdm gdm gdm3 sddm xdm lxdm ly; do
+  if [ -L "/var/service/$DM" ] || [ -f "/usr/lib/systemd/system/$DM.service" ] || command -v "$DM" >/dev/null 2>&1; then
+    if [ "$IN_SESSION" -eq 1 ]; then
+      warn "Hay $DM instalado: se desactivara al reiniciar (no ahora, para no cortar tu sesion)"
+    else
+      info "Desactivando $DM (en su lugar se usa greetd)..."
+      if [ "$FAMILIA" = "void" ]; then
+        sudo sv down "$DM" >/dev/null 2>&1; sudo rm -f "/var/service/$DM"
+      else
+        sudo systemctl disable --now "$DM.service" >/dev/null 2>&1
+      fi
+      ok "$DM desactivado (no desinstalado)"
+    fi
   fi
+done
+
+# --- 2) Binarios del greeter con ruta absoluta ---
+GREETD_BIN=""
+for b in /usr/bin/greetd /usr/local/bin/greetd /usr/sbin/greetd; do
+  [ -x "$b" ] && GREETD_BIN="$b" && break
+done
+[ -z "$GREETD_BIN" ] && GREETD_BIN="$(command -v greetd 2>/dev/null)"
+[ -z "$GREETD_BIN" ] && err "No se encuentra el binario greetd. Instala el paquete greetd."
+info "Binario greetd: $GREETD_BIN"
+
+TUIGREET_BIN=""
+for b in /usr/bin/tuigreet /usr/local/bin/tuigreet; do
+  [ -x "$b" ] && TUIGREET_BIN="$b" && break
+done
+[ -z "$TUIGREET_BIN" ] && TUIGREET_BIN="$(command -v tuigreet 2>/dev/null)"
+if [ -n "$TUIGREET_BIN" ]; then
+  ok "Greeter: $TUIGREET_BIN"
 else
-  if systemctl is-enabled lightdm.service >/dev/null 2>&1; then
-    ok "lightdm habilitado (arrancara con el sistema)"
+  warn "No se localiza tuigreet; se usara 'tuigreet' a secas (puede fallar con el PATH de runit)"
+  TUIGREET_BIN="tuigreet"
+fi
+
+# --- 3) Usuario del greeter (lo crea el paquete greetd en la mayoria de distros) ---
+case "$FAMILIA" in
+  void)   GREETER_USER="greetd" ;;
+  debian) GREETER_USER="_greetd" ;;
+  *)      GREETER_USER="greeter" ;;
+esac
+info "Configurando usuario greeter '$GREETER_USER'..."
+id -u "$GREETER_USER" >/dev/null 2>&1 || sudo useradd -r -s /sbin/nologin -d /var/lib/greetd "$GREETER_USER"
+sudo usermod -aG tty,video,input "$GREETER_USER"
+sudo mkdir -p /var/lib/greetd /etc/greetd
+sudo chown "$GREETER_USER:$GREETER_USER" /var/lib/greetd 2>/dev/null
+sudo chmod 700 /var/lib/greetd
+
+# --- 4) Botones de apagar/reiniciar solo si hay loginctl ---
+if command -v loginctl >/dev/null 2>&1; then
+  POWER_FLAGS="--power-shutdown 'loginctl poweroff' --power-reboot 'loginctl reboot'"
+  ok "loginctl presente: tuigreet con botones de apagar/reiniciar"
+else
+  POWER_FLAGS=""
+  warn "Sin loginctl: tuigreet va sin botones de power"
+fi
+
+# --- 5) /etc/greetd/config.toml ---
+sudo tee /etc/greetd/config.toml >/dev/null <<TOML
+[terminal]
+vt = 1
+
+[default_session]
+command = "$TUIGREET_BIN --cmd /usr/local/bin/dwm-startx --time --remember --asterisks $POWER_FLAGS"
+user = "$GREETER_USER"
+TOML
+sudo chmod 644 /etc/greetd/config.toml
+ok "/etc/greetd/config.toml escrito"
+
+if [ "$FAMILIA" = "void" ]; then
+
+  # --- 6a) Void (runit): servicio con ruta ABSOLUTA ---
+  sudo mkdir -p /etc/sv/greetd
+  sudo rm -f /etc/sv/greetd/down /var/service/greetd/down
+  sudo tee /etc/sv/greetd/run >/dev/null <<RUN
+#!/bin/sh
+# greetd DEBE correr como ROOT: gestiona VTs, PAM y abre las sesiones.
+# Ruta ABSOLUTA porque runit NO hereda el PATH de tu usuario.
+sleep 2
+rm -f /var/service/agetty-tty1
+pkill -f '/usr/bin/agetty.*tty1' 2>/dev/null
+sleep 1
+exec $GREETD_BIN -c /etc/greetd/config.toml 2>&1
+RUN
+  sudo chmod 755 /etc/sv/greetd/run
+
+  # --- 7a) Servicio de log para diagnosticar ---
+  if command -v svlogd >/dev/null 2>&1; then
+    sudo mkdir -p /etc/sv/greetd/log /var/log/greetd
+    sudo tee /etc/sv/greetd/log/run >/dev/null <<'LOG'
+#!/bin/sh
+mkdir -p /var/log/greetd
+exec svlogd -tt /var/log/greetd
+LOG
+    sudo chmod 755 /etc/sv/greetd/log/run
+    ok "Log de greetd en /var/log/greetd/current"
   else
-    warn "lightdm no quedo habilitado: revisa 'systemctl status lightdm'"
+    warn "svlogd no disponible: sin log de greetd"
   fi
+
+  # --- 8a0) Helper idempotente: activar greetd en tty1 ---
+  sudo tee /usr/local/sbin/dwm-enable-greetd >/dev/null <<'EN'
+#!/bin/sh
+# Activa greetd en tty1 y retira agetty-tty1 y otros gestores de sesion.
+# Idempotente: se ejecuta al apagar (rc.shutdown), al arrancar (rc.local) o a mano.
+rm -f /var/service/agetty-tty1
+pkill -f '/usr/bin/agetty.*tty1' 2>/dev/null
+for dm in lightdm gdm sddm xdm lxdm; do
+  rm -f "/var/service/$dm"
+  command -v systemctl >/dev/null 2>&1 && systemctl disable "$dm.service" 2>/dev/null
+done
+sleep 0.5
+ln -sfn /etc/sv/greetd /var/service/
+exit 0
+EN
+  sudo chmod 755 /usr/local/sbin/dwm-enable-greetd
+
+  # --- 8a) Si hay sesion en marcha, NO se toca /var/service ---
+  if [ "$IN_SESSION" -eq 1 ]; then
+    warn "Estas dentro de una sesion (${CUR_TTY:-tty?}): no se toca agetty ni /var/service"
+    info "   Se programa el cambio para que se aplique solo, sin riesgo."
+    for RC in /etc/rc.shutdown /etc/rc.local; do
+      [ -f "$RC" ] || printf '#!/bin/sh\n# Creado por install-dwm\n' | sudo tee "$RC" >/dev/null
+      if ! sudo grep -q 'dwm-enable-greetd' "$RC" 2>/dev/null; then
+        printf '\n# install-dwm: greetd en tty1 a partir del proximo arranque\n[ -x /usr/local/sbin/dwm-enable-greetd ] && /usr/local/sbin/dwm-enable-greetd\n' | sudo tee -a "$RC" >/dev/null
+      fi
+      sudo chmod +x "$RC"
+    done
+    ok "Activacion programada en /etc/rc.shutdown y /etc/rc.local"
+    DEFERRED=1
+  else
+    info "Paso 1/4: retirando agetty de tty1..."
+    srun sv force-stop agetty-tty1 || true
+    srun rm -f /var/service/agetty-tty1 || true
+    info "Paso 2/4: habilitando greetd en /var/service..."
+    srun ln -sfn /etc/sv/greetd /var/service/ || true
+    [ -L /var/service/greetd ] || err "No se pudo crear /var/service/greetd"
+    ok "greetd enlazado en /var/service"
+
+    # runsvdir tarda hasta 5 s en crear supervise/
+    i=0
+    while [ "$i" -lt 40 ]; do
+      [ -d /var/service/greetd/supervise ] && break
+      i=$((i+1)); sleep 0.5
+    done
+    if [ -d /var/service/greetd/supervise ]; then
+      info "Paso 3/4: arrancando greetd..."
+      if pgrep -x greetd >/dev/null 2>&1; then
+        srun sv restart greetd || srun sv start greetd || true
+      else
+        srun sv start greetd || true
+      fi
+    else
+      warn "runsvdir no ha recogido el servicio todavia"
+    fi
+
+    info "Paso 4/4: verificando que greetd sigue vivo..."
+    i=0; GREETD_UP=0
+    while [ "$i" -lt 40 ]; do
+      if pgrep -x greetd >/dev/null 2>&1; then GREETD_UP=1; break; fi
+      i=$((i+1)); sleep 0.5
+    done
+    sudo sv status greetd 2>/dev/null || warn "sv no pudo consultar el estado"
+    if [ "$GREETD_UP" -eq 1 ]; then
+      ok "greetd esta CORRIENDO"
+    else
+      FINAL_ERROR=1
+      warn "greetd NO arranco. Diagnostico:"
+      [ -f /var/log/greetd/current ] && sudo tail -n 20 /var/log/greetd/current
+      echo "  Prueba manual:  sudo sv down greetd; sudo $GREETD_BIN -c /etc/greetd/config.toml"
+    fi
+  fi
+
+else
+
+  # --- 6b) systemd (Arch, Fedora/Nobara y Debian) ---
+  sudo mkdir -p /etc/systemd/system/greetd.service.d
+  sudo tee /etc/systemd/system/greetd.service.d/10-wait-ready.conf >/dev/null <<INI
+[Unit]
+After=systemd-logind.service systemd-user-sessions.service systemd-udev-settle.service plymouth-quit-wait.service
+Wants=systemd-logind.service
+Conflicts=getty@tty1.service
+INI
+  sudo systemctl mask getty@tty1 2>/dev/null
+  sudo systemctl enable greetd.service 2>/dev/null
+  sudo systemctl set-default graphical.target 2>/dev/null
+  if [ "$IN_SESSION" -eq 1 ]; then
+    warn "Sesion activa: greetd solo se HABILITA (sin restart). Arranca tras el reboot."
+    DEFERRED=1
+  else
+    sudo systemctl enable --now greetd.service 2>/dev/null
+    sudo systemctl restart greetd.service 2>/dev/null
+    sleep 2
+    info "Estado del servicio:"
+    sudo systemctl status greetd.service --no-pager -l 2>/dev/null | head -n 12
+    if systemctl is-active --quiet greetd.service; then
+      ok "greetd esta activo (systemd)"
+    else
+      FINAL_ERROR=1
+      warn "greetd no esta activo. Mira: journalctl -u greetd -b"
+    fi
+  fi
+fi
+
+else
+  # El usuario eligio mantener su gestor: no se toca greetd ni los gestores actuales
+  info "Login: greetd no se configura. Elige 'dwm' en el menu de sesion de tu gestor actual."
 fi
 
 # ==================== RESUMEN ====================
 hdr "INSTALACION COMPLETA"
 printf "\n  %sUNICO PASO RESTANTE:%s\n\n" "$YEL$B" "$R"
 printf "      %s%ssudo reboot%s\n\n" "$B" "$YEL" "$R"
-echo " Tras reiniciar veras la pantalla de login de lightdm."
-echo " Elige la sesion 'dwm' e inicia sesion con tu usuario."
-echo
-echo " Si NO aparece el login:"
-if [ "$FAMILIA" = "void" ]; then
-  echo "   Void:   sudo sv status lightdm"
-  echo "           cat /var/log/lightdm/lightdm.log"
+if [ "$USE_GREETD" = 0 ]; then
+  if [ -n "$DM_FOUND" ]; then
+    echo " Mantienes tu gestor de sesion ($DM_FOUND): greetd no se ha tocado."
+    echo " Al reiniciar entra con ese gestor y elige 'dwm' en el menu de sesion."
+  else
+    echo " greetd no se configuro y no hay gestor de sesion: instala lightdm para entrar a dwm."
+  fi
+  echo
+elif [ "$DEFERRED" -eq 1 ]; then
+  echo " Modo seguro (estabas dentro de una sesion): el cambio se aplica al reiniciar."
+  if [ "$FAMILIA" = "void" ]; then
+    echo " Si quieres activarlo ya desde tty2+:  sudo /usr/local/sbin/dwm-enable-greetd"
+  fi
+  echo
 else
-  echo "   systemd: systemctl status lightdm"
-  echo "            journalctl -u lightdm -b"
+  echo " greetd ya esta habilitado y verificado."
+  echo " Tras reiniciar veras tuigreet directamente en tty1."
+  echo
 fi
-echo " Tambien puedes entrar en una consola (Ctrl+Alt+F2) y escribir 'startx'."
-echo
+if [ "$USE_GREETD" = 1 ]; then
+  echo " Inicia sesion con tu usuario y entras a dwm."
+  echo
+  echo " Si NO aparece tuigreet tras el reboot:"
+  if [ "$FAMILIA" = "void" ]; then
+    echo "   Void:            sudo sv status greetd"
+    echo "                    sudo tail -n 30 /var/log/greetd/current"
+    echo "                    sudo /usr/local/sbin/dwm-enable-greetd"
+  else
+    echo "   Arch/Fedora/Debian: systemctl status greetd"
+    echo "                       journalctl -u greetd -b"
+  fi
+  echo " (tty2..tty6 siguen con agetty: entra por ahi si hace falta)"
+  echo
+fi
 echo " Atajos:  Super+Enter terminal    Super+d menu"
 echo "          Super+q cerrar          Super+w barra on/off"
 echo "          Super+Shift+e salir de sesion"
@@ -1324,6 +1586,7 @@ if [ -n "$KERNEL_NUEVO" ]; then
   warn "Reinicia para usar el kernel $KERNEL_NUEVO (verifica con 'uname -r')."
 fi
 line
+[ "${FINAL_ERROR:-0}" -eq 1 ] && err "Revisa los errores de arriba antes de reiniciar."
 ok "Instalacion v$VERSION completada. Realiza ${B}sudo reboot${R} para cargar todo sin problema."
 rm -rf ~/dwm-instalador
 exit 0
