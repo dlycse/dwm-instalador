@@ -1,10 +1,9 @@
 # dwm-instalador
 
-Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya preconfigurado para **Void Linux** y **Arch Linux**.
+Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya preconfigurado para **Void Linux**, **Arch Linux**, **Fedora / Nobara** y **Debian**.
 
-> ### VERSIÓN 1.0
-> Soporta **Void Linux** (runit) y **Arch Linux** (systemd). Se comprobó con simulaciones de `sudo`, `xbps` y `pacman`; falta probarlo en un equipo real.
-> Se recomiendan **10 GB libres** en `/`. El instalador avisa si hay menos y te pregunta si continúa.
+> ### VERSIÓN 1.06
+> Soporta **Void Linux** (runit), **Arch Linux** (systemd), **Fedora 44 o superior** y **Nobara** (dnf + systemd), y **Debian** (apt + systemd).
 
 <img width="1281" height="800" alt="image" src="https://github.com/user-attachments/assets/558d5949-c612-41ca-8eb3-7dfb3bbdb62d" />
 
@@ -14,7 +13,7 @@ Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya prec
 
 | Componente | Para qué sirve |
 |---|---|
-| **dwm 6.2** | El gestor de ventanas, con el parche **vanitygaps** (separación entre ventanas) |
+| **dwm 6.2** | El gestor de ventanas, con el parche **vanitygaps** (separación entre ventanas). Se compila desde el código en todas las distros |
 | **slstatus** | El contenido de la barra: **CPU** (carga), **RAM**, **volumen**, **wifi** y **batería** (si hay), y la **hora** |
 | **st** | Terminal. Se **compila desde el código** con la paleta Tokyo Night y la fuente JetBrainsMono Nerd Font |
 | **dmenu** | Lanzador de aplicaciones |
@@ -23,7 +22,7 @@ Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya prec
 | **feh** | Fondo de pantalla |
 | **dunst** | Notificaciones |
 | **scrot** | Capturas de pantalla |
-| **lightdm** | Pantalla de inicio de sesión (también funciona con `startx`) |
+| **greetd + tuigreet** | Pantalla de inicio de sesión (en **tty1**), si no conservas tu gestor actual |
 | **udisks2 + polkit** | Montar pendrives y discos **sin contraseña** |
 | **gvfs, ntfs-3g, exfatprogs** | MTP (celulares), NTFS y exFAT |
 | Firefox, mpv, zathura, btop, fastfetch, cowsay | Navegador, video, PDF, monitor del sistema y utilidades |
@@ -36,6 +35,12 @@ Instalador de **dwm** (el gestor de ventanas en mosaico de suckless.org) ya prec
 **Apariencia:** paleta **Tokyo Night** (la misma que el instalador de dwl), fuente **JetBrainsMono Nerd Font** y fondo de pantalla anime 4K.
 
 **Tamaño de la fuente:** se elige según la resolución del monitor conectado: 11 pt (hasta Full HD), 13 pt (2400 px de ancho o más) o 15 pt (3000 px o más).
+
+### Fedora, Nobara y Debian
+
+- **Fedora y Nobara:** Fedora no empaqueta **JetBrainsMono Nerd Font**. El instalador la descarga de la [release oficial de Nerd Fonts](https://github.com/ryanoasis/nerd-fonts/releases) a `~/.local/share/fonts`.
+- **Debian:** la fuente base viene de `fonts-jetbrains-mono`, y la Nerd Font se descarga igual que en Fedora. Firefox se instala como `firefox-esr`.
+- En Debian, el grupo de administradores es **`sudo`** (no `wheel`). El instalador añade tu usuario a ese grupo.
 
 ---
 
@@ -53,6 +58,18 @@ En **Arch**:
 
 ```bash
 sudo pacman -S git
+```
+
+En **Fedora** y **Nobara**:
+
+```bash
+sudo dnf install -y git
+```
+
+En **Debian**:
+
+```bash
+sudo apt install -y git
 ```
 
 ### 1. Clonar el repositorio
@@ -90,10 +107,11 @@ chmod +x install-dwm.sh
 |---|---|
 | **Espacio libre** | Solo aparece si hay menos de 10 GB en `/`. Responde `s` para continuar o `N` para cancelar |
 | **Teclado** | `1` Inglés (us) · `2` Español de España (es) · `3` Latinoamericano (latam, **por defecto**) |
-| **País / zona horaria** | Escribe tu país (ej. `Colombia`, `México`, `Argentina`) o la zona directa (`America/Bogota`). Vacío = `America/Bogota` |
+| **País / zona horaria** | Escribe tu país (ej. `Colombia`, `México`, `Costa Rica`, `Estados Unidos`) o la zona directa (`America/Bogota`). Vacío = `America/Bogota` |
+| **Gestor de sesión** *(si ya tienes uno)* | Pregunta si cambiarlo por **greetd + tuigreet**. `N` (por defecto) lo conserva y eliges **dwm** en su menú. Si lo cambias y tienes una sesión gráfica abierta, el cambio se aplica **al reiniciar** |
 | **Kernel** (solo Void) | Si hay una serie más nueva en los repos, pregunta si la instalas. La actual no se borra |
 
-El **grupo `wheel`** no se pregunta: el instalador añade tu usuario a `wheel`, `video` e `input` sin preguntar (es lo que necesita la regla de polkit para los discos).
+El grupo de administradores (`wheel`, o `sudo` en Debian) no se pregunta: el instalador añade tu usuario a ese grupo, a `video` y a `input` sin preguntar. Es lo que necesita la regla de polkit para los discos.
 
 No hay menú de modos: es un flujo único que instala todo.
 
@@ -107,15 +125,23 @@ sudo reboot
 
 Reinicia para que se apliquen:
 
-- **Los grupos** (`wheel`, `video`, `input`): solo valen en una sesión nueva.
+- **Los grupos** (administradores, `video`, `input`): solo valen en una sesión nueva.
 - **La zona horaria y el teclado de consola**.
-- **lightdm**, que queda habilitado para arrancar con el sistema.
+- **greetd + tuigreet**, que queda habilitado para arrancar con el sistema.
 
 ### Cuando vuelvas a arrancar
 
-Verás **lightdm**. Elige la sesión **dwm** en el selector y entra con tu usuario.
+Verás **tuigreet** en la **tty 1**: una pantalla de login en texto. Escribe tu usuario y contraseña, y entras a **dwm**.
 
-> 💡 ¿Prefieres arrancar sin lightdm? El instalador también deja `~/.xinitrc`, así que funciona con:
+| Tecla (tuigreet) | Acción |
+|---|---|
+| `F2` | Cambiar el comando de la sesión |
+| `F3` | Elegir otra sesión |
+| `F12` | Menú de apagar / reiniciar — **solo si hay `loginctl`** |
+
+> ℹ️ Las consolas `tty2`…`tty6` siguen con `agetty` normal, por si necesitas entrar a una consola.
+
+> 💡 ¿Prefieres arrancar sin greetd? El instalador también deja `~/.xinitrc`, así que funciona con:
 > ```bash
 > startx
 > ```
@@ -193,7 +219,7 @@ nano ~/Atajos.txt
 El instalador deja configurada la pila para que montar discos no sea un dolor:
 
 `udevd` detecta el dispositivo → `udisks2` lo monta → `polkit` decide si hace falta contraseña →
-la regla dice que el grupo `wheel` **no la necesita**.
+la regla dice que los miembros del grupo de administradores (`wheel`, o `sudo` en Debian) **no la necesitan**.
 
 No hay gestor de archivos gráfico: esto se hace desde la terminal, o desde `lf`
 (`Super` + `E`).
@@ -211,7 +237,7 @@ Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulare
 > Para comprobar que todo está bien:
 > ```bash
 > sv status udevd dbus elogind polkitd      # Void: los cuatro servicios arriba
-> systemctl status polkit                   # Arch
+> systemctl status polkit                   # Arch, Fedora, Nobara y Debian
 > loginctl                                  # tu sesión registrada
 > pkcheck -a org.freedesktop.udisks2.filesystem-mount -p unix-process:pid:$$
 > ```
@@ -229,6 +255,8 @@ Soporta **NTFS** y **exFAT** (pendrives y discos de Windows) y **MTP** (celulare
 | `~/.config/picom/picom.conf` | Opacidad de la terminal y compositor | Al reiniciar la sesión |
 | `~/.config/lf/lfrc` | Gestor de archivos `lf` | Al reabrir `lf` |
 | `/usr/local/bin/dwm-session` | Wrapper de sesión (`dbus-run-session dwm`) | Al reiniciar la sesión |
+| `/usr/local/bin/dwm-startx` | Lanza dwm desde greetd (usa `startx`) | Al reiniciar la sesión |
+| `/etc/greetd/config.toml` | Pantalla de login (greetd + tuigreet) | `sudo sv restart greetd` (Void) o `sudo systemctl restart greetd` (Arch, Fedora, Nobara y Debian) |
 | `/etc/polkit-1/rules.d/49-udisks2-wheel.rules` | Permisos de montaje de discos | Normalmente sin reiniciar nada |
 
 ### Ejemplo: cambiar un atajo de teclado
@@ -274,20 +302,22 @@ Para cambiar el tamaño de la fuente en una instalación ya hecha, edita la fuen
 
 ---
 
-## 🐧 Diferencias entre Void y Arch
+## 🐧 Diferencias entre las distros
 
-| | **Void Linux** | **Arch Linux** |
-|---|---|---|
-| Init | runit | systemd |
-| Paquetes | `xbps-install` | `pacman -Syu --needed` (evita actualizaciones parciales) |
-| Paquetes que no estén en los repos | Se omiten con aviso | Se intentan por AUR con `yay` o `paru` (si hay alguno) |
-| Servicios | Enlaces en `/var/service` | `systemctl enable` |
-| Kernel | El instalador ofrece la serie más nueva | Se actualiza con `pacman -Syu` |
-| Sesión de logind | elogind | systemd-logind (incluido en systemd) |
+| | **Void** | **Arch** | **Fedora / Nobara** | **Debian** |
+|---|---|---|---|---|
+| Init | runit | systemd | systemd | systemd |
+| Paquetes | `xbps-install` | `pacman -Syu --needed` (evita actualizaciones parciales) | `dnf install --skip-unavailable` | `apt-get install` (solo paquetes con candidato) |
+| Paquetes que no estén en los repos | Se omiten con aviso | Se intentan por AUR con `yay` o `paru` (si hay alguno) | Se omiten con aviso | Se omiten con aviso |
+| Nerd Font | Paquete `nerd-fonts` | Paquete `ttf-jetbrains-mono-nerd` | Descarga oficial | Descarga oficial |
+| Grupo de administradores | `wheel` | `wheel` | `wheel` | `sudo` |
+| Servicios | Enlaces en `/var/service` | `systemctl enable` | `systemctl enable` | `systemctl enable` |
+| Kernel | El instalador ofrece la serie más nueva | Se actualiza con `pacman -Syu` | Se actualiza con `dnf` | Se actualiza con `apt` |
+| Sesión de logind | elogind | systemd-logind (incluido en systemd) | systemd-logind | systemd-logind |
 
 > En Arch, si `ttf-jetbrains-mono-nerd` no está en los repos oficiales y no tienes `yay` ni `paru`, el instalador avisa y sigue. Instala la fuente a mano; si no, dwm y st usarán otra fuente.
 
-Otras distribuciones (y Arch o Void sin systemd o runit) **no están soportadas**: el instalador se detiene al detectarlas, antes de cambiar nada.
+**Ubuntu y Linux Mint no están soportados.** El instalador solo acepta Debian puro, y se detiene en otras distros antes de cambiar nada. Artix (OpenRC o runit) tampoco: no tiene systemd.
 
 ---
 
@@ -295,13 +325,21 @@ Otras distribuciones (y Arch o Void sin systemd o runit) **no están soportadas*
 
 | Problema | Solución |
 |---|---|
-| No ves la sesión **dwm** en lightdm | Revisa que exista `/usr/share/xsessions/dwm.desktop` |
+| tuigreet no aparece tras el reinicio | Void `sudo sv status greetd` · Arch, Fedora, Nobara y Debian `systemctl status greetd` |
+| El instalador termina con `greetd NO arranco` | Revisa el log: Void `sudo tail -n 30 /var/log/greetd/current` · el resto `journalctl -u greetd -b` |
+| Vuelve el gestor de sesión viejo tras reiniciar (lightdm, gdm, sddm) | Desactívalo: `systemctl disable <gestor>` (systemd) o `sudo rm /var/service/<gestor>` (Void), y luego `sudo reboot` |
+| Debian: el instalador dice que tuigreet no está en los repos | Tu versión de Debian no lo trae. Se conserva tu gestor actual (o instala uno, como `sudo apt install lightdm lightdm-gtk-greeter`) y eliges **dwm** en su menú |
+| tuigreet abre pero dwm no arranca | Revisa `~/.local/share/xorg/Xorg.0.log` y `journalctl -u greetd -b`. Comprueba que `startx` esté instalado (`xinit` en Debian, `xorg-x11-xinit` en Fedora) |
+| El instalador se detiene con `Este instalador necesita systemd` | Tu distro no usa systemd (Artix con OpenRC o runit). No está soportada |
+| No ves la sesión **dwm** en el menú de tu gestor | Revisa que exista `/usr/share/xsessions/dwm.desktop` |
 | dwm arranca pero no se ve nada | Entra por consola (`Ctrl` + `Alt` + `F2`) y ejecuta `startx > ~/dwm-error.log 2>&1`; mira el log |
-| El pendrive pide contraseña al montarlo | Cierra sesión y vuelve a entrar (el grupo `wheel` solo aplica en una sesión nueva) y comprueba `loginctl` |
-| `lsblk` no ve el pendrive | Void: `sv status udevd dbus elogind polkitd` (los cuatro deben estar `run:`). Arch: `systemctl status polkit` |
+| El pendrive pide contraseña al montarlo | Cierra sesión y vuelve a entrar (el grupo de administradores solo aplica en una sesión nueva) y comprueba `loginctl` |
+| `lsblk` no ve el pendrive | Void: `sv status udevd dbus elogind polkitd` (los cuatro deben estar `run:`). Resto: `systemctl status polkit` |
+| Debian: no sale el volumen en la barra | Revisa que `pipewire-bin` esté instalado (`dpkg -l pipewire-bin`) y, si no, instálalo con `sudo apt install pipewire-bin wireplumber` |
+| Fedora / Nobara: `lf` no se instaló | Instálalo a mano: `sudo dnf install lf` o desde un COPR |
 | La compilación de dwm falla | Mira `/tmp/dwm-make.log`. Si lo que falla es el parche, mira `~/dwm/dwm.c.rej` |
 | La compilación de st o slstatus falla | Mira `/tmp/st-make.log` o `/tmp/slstatus-make.log` |
-| El instalador dice que la distro no es compatible | Solo Void (runit) y Arch (systemd). Otras distros no están soportadas |
+| El instalador dice que la distro no es compatible | Solo Void, Arch, Fedora, Nobara y Debian. Ubuntu, Mint y Artix no están soportados |
 | El instalador dice que no puede ejecutarse como root | Ejecútalo con tu usuario normal, no con `sudo ./install-dwm.sh` |
 
 ---
@@ -319,6 +357,7 @@ Este instalador no reinventa nada: une y configura proyectos existentes.
 | **dmenu** — lanzador | https://tools.suckless.org/dmenu |
 | **lf** — gestor de archivos en terminal | https://github.com/gokcehan/lf |
 | **picom** — compositor | https://github.com/yshui/picom |
+| **greetd / tuigreet** — inicio de sesión | https://git.sr.ht/~kennylevinsen/greetd |
 
 ---
 
@@ -334,8 +373,8 @@ Tengo dos instaladores hermanos:
 | Terminal | st | foot |
 | Lanzador | dmenu | wmenu |
 | Gestor de archivos | `lf` (solo terminal) | `lf` (solo terminal) |
-| Login | lightdm | greetd + tuigreet |
-| Distribuciones | Void y Arch | Void y Arch |
+| Login | greetd + tuigreet | greetd + tuigreet |
+| Distribuciones | Void, Arch, Fedora, Nobara y Debian | Void, Arch, Fedora, Nobara y Debian |
 | Gaps | ✅ activos (parche) | ❌ dwl no los trae |
 
 > Regla rápida: si tus programas son antiguos o necesitas X11 sí o sí, usa **dwm**.
@@ -343,4 +382,4 @@ Tengo dos instaladores hermanos:
 
 ---
 
-*Hecho para Void Linux y Arch Linux. Si encuentras un error, abre un issue en el repositorio.*
+*Hecho para Void Linux, Arch Linux, Fedora, Nobara y Debian. Si encuentras un error, abre un issue en el repositorio.*
