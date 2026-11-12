@@ -5,7 +5,7 @@
 set +e
 
 VERSION="1.06"
-BUILD="prueba (Void + Arch + Fedora/Nobara + Debian · greetd + tuigreet)"
+BUILD="Estable (Void + Arch + Fedora/Nobara + Debian · greetd + tuigreet)"
 
 # Archivo de distro (se puede cambiar para pruebas)
 OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
