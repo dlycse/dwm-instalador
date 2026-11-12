@@ -1,11 +1,10 @@
 #!/bin/sh
 # ============================================================
-# install-dwm v1.02 — X11 con dwm + slstatus + st
-#   Void, Arch, Fedora/Nobara (dnf + systemd) y Debian (apt + systemd)
-# ------------------------------------------------------------
+# install-dwm v1.06 — X11 con dwm + slstatus + st
+# ============================================================
 set +e
 
-VERSION="1.02"
+VERSION="1.06"
 BUILD="prueba (Void + Arch + Fedora/Nobara + Debian · greetd + tuigreet)"
 
 # Archivo de distro (se puede cambiar para pruebas)
@@ -154,7 +153,8 @@ info "Usuario destino: $REAL_USER   HOME: $REAL_HOME"
 sudo -v || err "Necesitas privilegios de sudo para continuar."
 ( while :; do sudo -v; sleep 60; done ) >/dev/null 2>&1 &
 SUDO_KEEPALIVE=$!
-trap 'kill "$SUDO_KEEPALIVE" 2>/dev/null' EXIT INT TERM
+trap 'kill "$SUDO_KEEPALIVE" 2>/dev/null' EXIT
+trap 'kill "$SUDO_KEEPALIVE" 2>/dev/null; exit 130' INT TERM
 ok "Credencial sudo cacheada (se renueva sola durante la compilacion)"
 
 hdr "DETECCION DEL SISTEMA"
@@ -253,7 +253,7 @@ printf "  %s[?]%s Pais (ejemplo: Mexico, Paraguay, Bolivia, etc.) %s[vacio = Ame
 read -r TZIN
 TZIN="${TZIN:-America/Bogota}"
 resolv_tz(){
-  case "$1" in
+  case "$(printf '%s' "$1" | tr -d ' ')" in
     [Cc]olombia)                              echo "America/Bogota" ;;
     [Mm]exico|[Mm]éxico)                      echo "America/Mexico_City" ;;
     [Aa]rgentina)                             echo "America/Buenos_Aires" ;;
@@ -332,7 +332,8 @@ case "$FAMILIA" in
   void)
     hdr "PAQUETES - VOID LINUX"
     info "Sincronizando indice de paquetes..."
-    sudo xbps-install -S >/dev/null 2>&1 || warn "No se pudo sincronizar (continuo con el indice local)"
+    sudo xbps-install -Sy xbps >/dev/null 2>&1 || warn "No se pudo actualizar xbps (continuo)"
+  sudo xbps-install -S >/dev/null 2>&1 || warn "No se pudo sincronizar (continuo con el indice local)"
 
     PKGS_VOID="
       base-devel git curl wget nano file ncurses
@@ -1515,8 +1516,16 @@ Wants=systemd-logind.service
 Conflicts=getty@tty1.service
 INI
   sudo systemctl mask getty@tty1 2>/dev/null
-  sudo systemctl enable greetd.service 2>/dev/null
   sudo systemctl set-default graphical.target 2>/dev/null
+  # Otros gestores ocupan el alias display-manager.service: sin desactivarlos,
+  # 'enable greetd' falla y al reiniciar vuelve el gestor viejo. 'disable' no corta la sesion.
+  for DMX in lightdm gdm gdm3 sddm xdm lxdm ly; do
+    sudo systemctl disable "$DMX.service" >/dev/null 2>&1 || true
+  done
+  if ! sudo systemctl enable --force greetd.service >/dev/null 2>&1; then
+    FINAL_ERROR=1
+    warn "No se pudo habilitar greetd.service (prueba: sudo systemctl enable --force greetd.service)"
+  fi
   if [ "$IN_SESSION" -eq 1 ]; then
     warn "Sesion activa: greetd solo se HABILITA (sin restart). Arranca tras el reboot."
     DEFERRED=1
